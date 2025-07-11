@@ -1,0 +1,281 @@
+.auth-container {
+  max-width: 500px;
+  margin: 5rem auto;
+  padding: 2rem;
+  background: #1b1b1b;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 0 12px #00bcd4;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 90px;
+}
+
+.auth-container h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #00bcd4;
+}
+
+.auth-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Form group (label + input) */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.95rem;
+  color: #ccc;
+}
+
+/* Input fields */
+.auth-container input {
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #121212;
+  color: white;
+  font-size: 1rem;
+  width: 100%;
+  transition: border-color 0.3s ease;
+}
+
+.auth-container input:focus {
+  outline: none;
+  border-color: #00bcd4;
+}
+
+.auth-container input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Remember Me checkbox styling */
+.remember-me {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.remember-me input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  margin: 0;
+  accent-color: #00bcd4;
+  transform: scale(1.1);
+}
+
+.remember-me label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ccc;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-me input[type="checkbox"]:disabled + label {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Birthdate group */
+.dob-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dob-group .dob-input {
+  flex: 1;
+}
+
+.dob-group .dob-input input {
+  padding: 0.6rem;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.dob-group .dob-input.day input {
+  max-width: 60px;
+}
+
+.dob-group .dob-input.month input {
+  max-width: 80px;
+}
+
+.dob-group .dob-input.year input {
+  max-width: 100px;
+}
+
+/* Button */
+.auth-container button {
+  padding: 0.8rem 1.2rem;
+  background: #00bcd4;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #121212;
+  font-size: 1rem;
+  transition: background 0.3s ease;
+}
+
+.auth-container button:hover:not(:disabled) {
+  background: #0097a7;
+}
+
+.auth-container button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Navigation buttons for signed-in users */
+.nav-button {
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  background: #00bcd4;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #121212;
+  text-decoration: none;
+  text-align: center;
+  font-size: 1rem;
+  transition: background 0.3s ease;
+  display: block;
+}
+
+.nav-button:hover {
+  background: #0097a7;
+}
+
+.signout-button {
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  background: #ff4757;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+  font-size: 1rem;
+  transition: background 0.3s ease;
+}
+
+.signout-button:hover {
+  background: #ff3742;
+}
+
+/* Error and success messages */
+.error {
+  color: #ff4d4d;
+  font-size: 0.9rem;
+  text-align: center;
+  background: rgba(255, 77, 77, 0.1);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 77, 77, 0.3);
+}
+
+.success {
+  color: #4dff4d;
+  font-size: 0.9rem;
+  text-align: center;
+  background: rgba(77, 255, 77, 0.1);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(77, 255, 77, 0.3);
+}
+
+/* Navigation bar */
+.auth-navbar {
+  width: 100vw;
+  min-width: 100vw;
+  left: 0;
+  top: 0;
+  position: fixed;
+  padding: 1rem 2rem;
+  background: #1b1b1b;
+  box-shadow: 0 2px 10px rgba(0, 188, 212, 0.2);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+  justify-content: space-between;
+}
+
+.home-link {
+  color: #00bcd4;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.2s;
+}
+
+.home-link:hover {
+  color: #0097a7;
+}
+
+/* User info in navbar */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.signout-btn {
+  padding: 0.5rem 1rem;
+  background: #ff4757;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.signout-btn:hover {
+  background: #ff3742;
+}
+
+/* Light theme support */
+body.light-theme .auth-container {
+  background: #ffffff;
+  color: #333;
+  box-shadow: 0 0 12px rgba(0, 188, 212, 0.3);
+}
+
+body.light-theme .auth-container input {
+  background: #f5f5f5;
+  color: #333;
+  border-color: #ddd;
+}
+
+body.light-theme .auth-container input:focus {
+  border-color: #00bcd4;
+}
+
+body.light-theme .form-group label {
+  color: #666;
+}
+
+body.light-theme .remember-me label {
+  color: #666;
+}
+
+body.light-theme .auth-navbar {
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .user-info span {
+  color: #666;
+}

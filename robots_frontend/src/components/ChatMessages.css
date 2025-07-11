@@ -1,0 +1,266 @@
+/*
+  Restored from backup for correct message container and bubble appearance
+*/
+.chat-messages {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  overflow-y: auto;
+  padding: 0 0 40px 0;
+  background: transparent;
+  position: relative;
+  min-height: 200px;
+  max-height: calc(100vh - 260px);
+}
+.chat-message {
+  margin: 16px 0;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: #23272f;
+  color: #fff;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  box-shadow: 0 2px 12px #00bcd455;
+  width: 100%;
+  min-width: 0;
+  word-break: break-word;
+  white-space: pre-line;
+  align-self: flex-end;
+  transition: background 0.2s, color 0.2s;
+  position: relative;
+  border: 1px solid #222b;
+  animation: fadeInMsg 0.3s;
+}
+@keyframes fadeInMsg {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.chat-message.agent {
+  background: #1a2530;
+  color: #b2eaff;
+  box-shadow: 0 2px 12px #0097a755;
+  align-self: flex-start;
+  border: 1px solid #0097a733;
+}
+.chat-message-label {
+  color: #00bcd4;
+  font-weight: bold;
+  margin-right: 8px;
+  font-size: 0.98em;
+}
+.chat-message.agent .chat-message-label {
+  color: #0097a7;
+}
+.chat-markdown {
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: inherit;
+}
+.agent-image-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 8px 0 12px 0;
+}
+.agent-image-message img {
+  max-width: 320px;
+  max-height: 320px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  box-shadow: 0 2px 8px #00bcd433;
+}
+.agent-image-message .download-btn {
+  background: #00bcd4;
+  color: #121212;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px 4px 8px;
+  font-size: 1.05em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 2px;
+  margin-top: 2px;
+}
+.agent-image-message .download-btn:hover {
+  background: #0097a7;
+}
+.agent-image-message .download-icon {
+  width: 1.1em;
+  height: 1.1em;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+.agent-image-message .image-desc {
+  color: #888;
+  font-size: 0.98em;
+  margin-top: 2px;
+  margin-bottom: 0;
+}
+
+/* File message styles */
+.chat-file-message {
+  margin: 8px 0;
+  padding: 12px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-context-status {
+  font-size: 0.8em;
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.file-name {
+  font-weight: 600;
+  color: #00bcd4;
+  font-size: 0.95em;
+}
+
+.file-download {
+  color: #0097a7;
+  text-decoration: none;
+  font-size: 0.9em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #1a2530;
+  transition: background 0.2s;
+}
+
+.file-download:hover {
+  background: #2a3540;
+}
+
+.file-content-preview {
+  margin-top: 8px;
+}
+
+.file-content-preview details {
+  color: #ccc;
+}
+
+.file-content-preview summary {
+  cursor: pointer;
+  color: #00bcd4;
+  font-weight: 600;
+  margin-bottom: 8px;
+  user-select: none;
+}
+
+.file-content-preview summary:hover {
+  color: #0097a7;
+}
+
+/* Image download button styles */
+.image-download-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  z-index: 10;
+}
+
+.image-download-btn:hover {
+  background: rgba(0, 188, 212, 0.8);
+  color: #fff;
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* Remove image-download-btn styles and revert .chat-image-message */
+.chat-image-message {
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+}
+
+.file-content {
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1.4;
+  color: #e0e0e0;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Shopping product thumbnail styles */
+.shopping-product-image {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 8px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  text-align: center;
+}
+
+.shopping-product-image img {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.shopping-product-image .product-desc {
+  font-size: 0.8em;
+  color: #888;
+  margin-top: 4px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shopping-product-image-markdown {
+  display: block;
+  margin: 16px auto 8px auto;
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

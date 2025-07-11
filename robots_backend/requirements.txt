@@ -1,0 +1,32 @@
+# Core Framework
+fastapi==0.115.12
+uvicorn==0.31.1
+python-multipart==0.0.20
+
+# LangGraph & LangChain
+langgraph==0.2.52
+langchain==0.3.26
+langchain-google-genai==2.0.9
+langchain-community==0.3.27
+langchain-core==0.3.66
+
+# Tools & Utilities
+composio-langchain==0.7.20
+python-dotenv==1.0.1
+pydantic==2.10.6
+httpx==0.28.1
+
+# CORS & Security
+fastapi-cors==0.0.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# File Processing Dependencies
+Pillow==10.1.0
+pytesseract==0.3.10
+PyPDF2==3.0.1
+pandas==2.1.4
+openpyxl==3.1.2
+python-docx==1.1.0
+pypdf==3.17.4
+requests==2.32.3

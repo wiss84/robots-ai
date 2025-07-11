@@ -1,0 +1,130 @@
+/*
+  ChatUI.css now only contains global or shared chat styles.
+  Component-specific styles have been moved to:
+    - ChatSidebar.css
+    - ChatMessages.css
+    - ChatInput.css
+*/
+
+/*
+  Restored from backup for correct layout and appearance
+*/
+.chat-root {
+  display: flex;
+  height: calc(100vh - 70px); /* 70px is the navbar height */
+  background: #121212;
+  margin-top: 70px;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 900px;
+  height: 100%;
+}
+
+.chat-main.greeting-mode {
+  justify-content: center;
+}
+
+.chat-greeting-header-outer {
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  background: transparent;
+  position: relative;
+  z-index: 2;
+  margin-top: 40px;
+  margin-bottom: 32px;
+  transition: margin-left 0.2s;
+  pointer-events: none;
+}
+
+.chat-greeting-header-outer.greeting-mode {
+  margin-top: -60px !important;
+  margin-bottom: 0 !important;
+  min-height: 0;
+}
+
+.chat-greeting-header {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+  color: #00bcd4;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  background: transparent;
+  position: relative;
+  z-index: 2;
+  border-radius: 0;
+  margin: 0;
+  pointer-events: auto;
+}
+
+@media (max-width: 900px) {
+  .chat-main,
+  .chat-messages,
+  .chat-input-container,
+  .chat-message {
+    max-width: 100vw;
+    min-width: 0;
+    width: 98vw;
+  }
+  .chat-header {
+    max-width: 100vw;
+  }
+  .chat-greeting-header-outer.greeting-mode {
+    margin-top: -30px !important;
+  }
+}
+
+/* Light theme overrides for chat UI */
+body.light-theme .chat-root,
+body.light-theme .chat-main,
+body.light-theme .chat-sidebar,
+body.light-theme .chat-header,
+body.light-theme .chat-messages,
+body.light-theme .chat-input-container {
+  background: #fff !important;
+  color: #222 !important;
+}
+body.light-theme .chat-header,
+body.light-theme .conversations-title {
+  color: #00bcd4 !important;
+}
+body.light-theme .conversation-item {
+  color: #222 !important;
+}
+body.light-theme .chat-input {
+  color: #222 !important;
+  background: transparent !important;
+}
+body.light-theme .chat-attachment-label {
+  color: #00bcd4 !important;
+}
+body.light-theme .new-chat-btn {
+  color: #fff !important;
+  background: #00bcd4 !important;
+}
+body.light-theme .auth-navbar {
+  background: #fff !important;
+  color: #222 !important;
+  border-bottom: 1px solid #eee;
+}
+body.light-theme .home-link {
+  color: #00bcd4 !important;
+}
+

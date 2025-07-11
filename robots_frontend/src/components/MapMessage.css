@@ -1,0 +1,140 @@
+.map-message {
+  margin: 15px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.map-message.minimized {
+  max-height: 80px;
+  overflow: hidden;
+}
+
+.map-header {
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-header-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.map-header-content p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.map-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.map-control-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.map-control-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.map-control-btn:active {
+  transform: scale(0.95);
+}
+
+.map-content {
+  transition: height 0.3s ease;
+}
+
+.map-message-container {
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+.map-summary {
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.map-stat {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.map-stat:not(:last-child)::after {
+  content: '•';
+  margin-left: 15px;
+  color: #dee2e6;
+}
+
+/* Minimized state styles */
+.map-message.minimized .map-content {
+  height: 60px;
+  overflow: hidden;
+}
+
+.map-message.minimized .map-header {
+  padding: 10px 20px;
+}
+
+.map-message.minimized .map-header-content h4 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.map-message.minimized .map-header-content p {
+  display: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .map-message {
+    margin: 10px 0;
+  }
+  
+  .map-header {
+    padding: 12px 15px;
+  }
+  
+  .map-summary {
+    padding: 10px 15px;
+    gap: 10px;
+  }
+  
+  .map-stat {
+    font-size: 12px;
+  }
+  
+  .map-control-btn {
+    width: 28px;
+    height: 28px;
+  }
+} 

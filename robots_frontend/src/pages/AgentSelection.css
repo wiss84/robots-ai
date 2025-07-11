@@ -1,0 +1,296 @@
+/* General reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html, #root {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #121212;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Main app container */
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #121212;
+  overflow: hidden;
+  margin-top: 90px;
+}
+
+/* Title */
+.app h1 {
+  position: absolute;
+  top: 20px;
+  width: 100%;
+  text-align: center;
+  font-size: 4rem;
+  color: #ffffff;
+  z-index: 1;
+}
+
+/* Layout for main circle and preview card */
+.main-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4rem;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Circular avatar container centered */
+.avatar-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  box-shadow: 0 0 20px #333 inset;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #121212;
+}
+
+/* Styling for the full-body standing pose image */
+.standing-pose-image {
+  position: absolute; 
+  max-width: 60%; 
+  max-height: 80%; 
+  object-fit: contain; 
+  border-radius: 50%;
+  z-index: 0; 
+  transition: opacity 0.5s ease-in-out; 
+  background-color: transparent;
+}
+
+
+/* Each avatar wrapper positioned absolutely */
+.avatar-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.5s ease, box-shadow 0.3s ease;
+  border-radius: 50%;
+  z-index: 2;
+  background-color: rgba(27, 27, 27, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 5px;
+}
+
+.avatar-wrapper:hover,
+.avatar-wrapper.active-avatar { 
+  box-shadow: 0 0 10px #00bcd4, 0 0 20px #00bcd4 inset;
+  transform: scale(1.1);
+  z-index: 10;
+}
+
+/* Avatar images */
+.avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #555;
+}
+
+/* Avatar name below each avatar */
+.avatar-wrapper span {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: #ccc;
+  user-select: none;
+}
+
+/* Arrow controls */
+.arrow-controls {
+  position: absolute;
+  bottom: 40px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 40rem; /* larger gap for wide screens */
+  z-index: 2;
+}
+
+.arrow-controls .arrow-button {
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border: 2px solid #888;
+  color: #fff;
+  font-size: 2rem;
+  width: 140px; /* increased width */
+  height: 60px; /* increased height */
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.arrow-controls .arrow-button:hover {
+  border-color: #00bcd4;
+  background: #1e1e1e;
+  box-shadow: 0 0 10px #00bcd4, 0 0 20px #00bcd4 inset;
+}
+
+.arrow-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem; /* spacing between label and arrow */
+}
+
+.arrow-label {
+  font-size: 1.4rem;
+  color: #00bcd4;
+  user-select: none;
+  font-weight: bold;
+  width: 120px;
+  text-align: center;
+  transform-origin: center;
+}
+
+.arrow-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: fill; /* ensures full image is visible and not cropped */
+}
+
+@media (max-width: 1400px) {
+  .arrow-controls {
+    gap: 10rem;
+  }
+}
+@media (max-width: 1200px) {
+  .arrow-controls {
+    gap: 4rem;
+  }
+  .arrow-controls .arrow-button {
+    width: 80px;
+    height: 40px;
+  }
+  .arrow-label {
+    width: 80px;
+    font-size: 1.1rem;
+  }
+}
+
+/* Preview card on right */
+.preview-card {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(220px, 20vw, 340px);
+  height: clamp(320px, 34vw, 440px);
+  background: #1b1b1b;
+  border-radius: 12px;
+  padding: clamp(1rem, 2vw, 2rem);
+  box-shadow: 0 0 20px #00bcd4;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-name {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  margin-bottom: 1rem;
+  font-weight: bold;
+  text-align: center;
+  color: #00bcd4;
+}
+
+.preview-avatar {
+  width: clamp(90px, 12vw, 150px);
+  height: clamp(90px, 12vw, 150px);
+  border-radius: 50%;
+  border: 3px solid #00bcd4;
+  margin-bottom: 1rem;
+}
+
+.preview-card p {
+  margin-bottom: 1rem;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  font-weight: bold;
+  text-align: center;
+}
+
+.preview-card button {
+  background: #00bcd4;
+  border: none;
+  padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 2vw, 1.5rem);
+  border-radius: 8px;
+  color: #121212;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.preview-card button:hover {
+  background: #0097a7;
+}
+
+/* Responsive fix for preview card */
+@media (max-width: 1200px) {
+  .preview-card {
+    position: static;
+    transform: none;
+    margin: 2rem auto 0 auto;
+    right: unset;
+    top: unset;
+    width: 90vw;
+    max-width: 400px;
+    min-width: 220px;
+    box-shadow: 0 0 10px #00bcd4;
+  }
+}
+
+@media (max-width: 700px) {
+  .preview-card {
+    width: 98vw;
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1rem;
+    height: auto;
+  }
+  .preview-avatar {
+    width: 70vw;
+    max-width: 120px;
+    height: 70vw;
+    max-height: 120px;
+  }
+}
+

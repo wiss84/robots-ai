@@ -1,0 +1,28 @@
+.chat-poses-container {
+  position: fixed;
+  top: 90px; /* just below navbar */
+  right: 32px;
+  width: 200px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border: 2px solid #00bcd4;
+  z-index: 1002;
+  transition: background 0.2s, border 0.2s;
+}
+
+body.dark-theme .chat-poses-container {
+  background: rgba(30, 32, 36, 0.95);
+  border: 2px solid #0097a7;
+}
+
+.chat-poses-placeholder {
+  color: #00bcd4;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+}

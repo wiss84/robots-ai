@@ -1,0 +1,72 @@
+/*
+  Updated to match backup ChatUI.css for attachment icon styling
+*/
+.file-upload-root {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.file-upload-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-btn:hover {
+  background-color: rgba(0, 188, 212, 0.1);
+}
+
+.file-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file-upload-filename {
+  font-size: 0.9em;
+  color: #666;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-upload-status {
+  display: flex;
+  align-items: center;
+}
+
+.file-upload-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 6px;
+  color: #4caf50;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.success-icon {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.success-text {
+  color: #4caf50;
+}
+
+.file-upload-error {
+  color: #f44336;
+  font-size: 0.9em;
+  margin-left: 8px;
+}

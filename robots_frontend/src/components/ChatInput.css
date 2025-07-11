@@ -1,0 +1,161 @@
+.chat-input-form {
+  position: relative;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.chat-input-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  background: #23272f;
+  border-radius: 12px;
+  margin-top: 8px;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.chat-attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(0, 188, 212, 0.1);
+  border: 1px solid rgba(0, 188, 212, 0.3);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  width: 180px;
+  min-width: 120px;
+  max-width: 180px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.attachment-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.attachment-thumbnail {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px #00bcd433;
+  background: #111;
+}
+
+.file-attachment-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #00bcd4;
+  font-weight: 500;
+}
+
+.file-icon {
+  font-size: 1.2em;
+}
+
+.file-type {
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.attachment-success {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #4caf50;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.success-icon {
+  font-size: 1em;
+  font-weight: bold;
+}
+
+.success-text {
+  color: #4caf50;
+}
+
+.chat-attachment-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.chat-attachment-remove:hover {
+  color: #f44336;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  max-height: 120px;
+  border-radius: 8px;
+  padding: 10px;
+  border: 1px solid #333;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  width: 100%;
+}
+
+.chat-input-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.chat-attachment-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.chat-mic-btn, .chat-send-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.chat-input-error {
+  color: #f44336;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+}
+
+.chat-uploading-spinner {
+  color: #00bcd4;
+  font-size: 0.9em;
+  font-weight: 500;
+}
