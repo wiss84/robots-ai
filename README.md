@@ -386,7 +386,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use this project in your research or work, please cite it as:
 
 ```bibtex
-@software{robots_ai_2024,
+@software{robots_ai_2025,
   title={Robots-AI: Multi-Agent AI Assistant Platform},
   author={Wissam Metawee},
   year={2025},
@@ -415,10 +415,6 @@ Or simply include a link to this repository in your acknowledgments.
 ## 🔄 Version History
 
 - **v1.0.0** - Initial release with 7 specialized agents
-- **v0.9.0** - Beta version with core functionality
-- **v0.8.0** - Alpha version with basic agent framework
-
----
 
 **Made with ❤️ by [Wissam Metawee]**
 
