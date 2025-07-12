@@ -14,7 +14,7 @@ const MapMessage: React.FC<MapMessageProps> = ({ message, className = '' }) => {
   let mapData: ParsedMapData | null = null;
   let mapError: string | null = null;
   
-  console.log('MapMessage received message:', message);
+  console.log('MapMessage received message:', message.substring(0, 200) + '...');
   
   try {
     mapData = parseMapDataFromResponse(message);
@@ -36,7 +36,7 @@ const MapMessage: React.FC<MapMessageProps> = ({ message, className = '' }) => {
   }
 
   if (!mapData) {
-    console.log('No map data found');
+    console.log('No map data found in message');
     return null; // Don't render anything if no map data found
   }
 

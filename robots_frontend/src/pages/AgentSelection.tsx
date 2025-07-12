@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AgentSelection.css';
 import { agentDescriptions } from '../data/AgentDescriptions';
@@ -68,57 +68,150 @@ const agents: Agent[] = [
 function AgentSelection() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [currentStandingPoseUrl, setCurrentStandingPoseUrl] = useState<string | null>(null);
   const [loadedStandingPoseImages, setLoadedStandingPoseImages] = useState<Set<string>>(new Set());
   const [isCurrentPoseLoading, setIsCurrentPoseLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   const navigate = useNavigate();
 
+  // Debounce search query to prevent too many rapid updates
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Optimized search handler
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const value = e.target.value;
+      console.log('Search input changed:', value);
+      setSearchQuery(value);
+    } catch (error) {
+      console.error('Error updating search query:', error);
+    }
+  }, []);
+
+  // Global error handler
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('Global error caught:', error);
+      setHasError(true);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   const filteredAgents = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    return agents.filter((agent) =>
+    const query = debouncedSearchQuery.toLowerCase();
+    const filtered = agents.filter((agent) =>
       agent.name.toLowerCase().includes(query) ||
       agent.description.toLowerCase().includes(query) ||
       (agent.keywords?.some((kw) => kw.toLowerCase().includes(query)))
     );
-  }, [searchQuery]);
+    console.log('Search query:', debouncedSearchQuery, 'Filtered agents:', filtered.length);
+    return filtered;
+  }, [debouncedSearchQuery]);
+
+  // Ensure selectedIndex is always valid when filtered agents change
+  useEffect(() => {
+    if (filteredAgents.length > 0 && selectedIndex >= filteredAgents.length) {
+      setSelectedIndex(0);
+    } else if (filteredAgents.length === 0) {
+      setSelectedIndex(0);
+    }
+  }, [filteredAgents, selectedIndex]);
+
+  // Additional safety check for selectedIndex
+  const safeSelectedIndex = useMemo(() => {
+    if (filteredAgents.length === 0) return 0;
+    return Math.max(0, Math.min(selectedIndex, filteredAgents.length - 1));
+  }, [selectedIndex, filteredAgents.length]);
 
   useEffect(() => {
     const preloadImages = async () => {
-      const newLoadedImages = new Set<string>();
-      const imagePromises = filteredAgents.map((agent) => {
-        const agentFolder = agent.id + '_agent';
-        const standingPosePath = `/avatars/${agentFolder}/standing_pose.webp`;
-        return new Promise<string>((resolve) => {
-          const img = new window.Image();
-          img.src = standingPosePath;
-          img.onload = () => {
-            newLoadedImages.add(standingPosePath);
-            resolve(standingPosePath);
-          };
-          img.onerror = () => {
-            resolve(standingPosePath);
-          };
-        });
-      });
+      try {
+        const newLoadedImages = new Set<string>();
+        
+        // Only preload if we have filtered agents
+        if (filteredAgents.length === 0) {
+          setLoadedStandingPoseImages(newLoadedImages);
+          setCurrentStandingPoseUrl(null);
+          setIsCurrentPoseLoading(false);
+          return;
+        }
 
-      await Promise.all(imagePromises);
-      setLoadedStandingPoseImages(newLoadedImages);
-      
-      // Update current standing pose after preloading
-      if (filteredAgents.length > 0) {
-        const agentFolder = filteredAgents[selectedIndex].id + '_agent';
-        const standingPosePath = `/avatars/${agentFolder}/standing_pose.webp`;
-        setCurrentStandingPoseUrl(standingPosePath);
-        setIsCurrentPoseLoading(!newLoadedImages.has(standingPosePath));
-      } else {
-        setCurrentStandingPoseUrl(null);
+        const imagePromises = filteredAgents.map((agent) => {
+          const agentFolder = agent.id + '_agent';
+          const standingPosePath = `/avatars/${agentFolder}/standing_pose.webp`;
+          return new Promise<string>((resolve) => {
+            const img = new window.Image();
+            img.src = standingPosePath;
+            img.onload = () => {
+              newLoadedImages.add(standingPosePath);
+              resolve(standingPosePath);
+            };
+            img.onerror = () => {
+              // Don't add to loaded images if it fails
+              resolve(standingPosePath);
+            };
+          });
+        });
+
+        await Promise.all(imagePromises);
+        setLoadedStandingPoseImages(newLoadedImages);
+        
+        // Ensure selectedIndex is within bounds
+        const safeSelectedIndex = Math.min(selectedIndex, filteredAgents.length - 1);
+        if (safeSelectedIndex !== selectedIndex) {
+          setSelectedIndex(safeSelectedIndex);
+        }
+        
+        // Update current standing pose after preloading
+        if (filteredAgents.length > 0 && safeSelectedIndex >= 0) {
+          const agentFolder = filteredAgents[safeSelectedIndex].id + '_agent';
+          const standingPosePath = `/avatars/${agentFolder}/standing_pose.webp`;
+          setCurrentStandingPoseUrl(standingPosePath);
+          setIsCurrentPoseLoading(!newLoadedImages.has(standingPosePath));
+        } else {
+          setCurrentStandingPoseUrl(null);
+          setIsCurrentPoseLoading(false);
+        }
+      } catch (error) {
+        console.error('Error preloading images:', error);
+        // Fallback: set loading to false to prevent infinite loading state
         setIsCurrentPoseLoading(false);
+        setCurrentStandingPoseUrl(null);
       }
     };
 
     preloadImages();
-  }, [filteredAgents, selectedIndex]); // Keep both dependencies
+  }, [filteredAgents]); // Remove selectedIndex from dependencies to prevent infinite loops
+
+  // Separate useEffect to handle selectedIndex changes
+  useEffect(() => {
+    if (filteredAgents.length > 0 && safeSelectedIndex >= 0 && safeSelectedIndex < filteredAgents.length) {
+      const agentFolder = filteredAgents[safeSelectedIndex].id + '_agent';
+      const standingPosePath = `/avatars/${agentFolder}/standing_pose.webp`;
+      setCurrentStandingPoseUrl(standingPosePath);
+      setIsCurrentPoseLoading(!loadedStandingPoseImages.has(standingPosePath));
+    }
+  }, [safeSelectedIndex, filteredAgents, loadedStandingPoseImages]);
 
   const rotateLeft = () => {
     setSelectedIndex((prev) => (prev - 1 + filteredAgents.length) % filteredAgents.length);
@@ -129,7 +222,7 @@ function AgentSelection() {
   };
 
   const rotation = filteredAgents.length > 0
-    ? 270 - (selectedIndex * (360 / filteredAgents.length))
+    ? 270 - (safeSelectedIndex * (360 / filteredAgents.length))
     : 0;
 
   // Search box to be rendered in Navbar
@@ -139,7 +232,7 @@ function AgentSelection() {
       className="agent-search-box"
       placeholder="Search agents..."
       value={searchQuery}
-      onChange={e => setSearchQuery(e.target.value)}
+      onChange={handleSearchChange}
       style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc', minWidth: 180 }}
     />
   );
@@ -149,63 +242,131 @@ function AgentSelection() {
       <Navbar showHomeLink={true} showAgentSelectionLink={false} searchBox={searchBox} />
       <div className="app" style={{ marginTop: '90px' }}>
         <h1>Select Your Agent</h1>
-        <div className="main-content">
-          <div className="avatar-circle">
-            {/* Display loading indicator or standing pose image */}
-            {isCurrentPoseLoading && currentStandingPoseUrl && !loadedStandingPoseImages.has(currentStandingPoseUrl) ? (
-              <div className="loading-indicator">Loading Agent...</div>
-            ) : (
-              currentStandingPoseUrl && (
-                <img
-                  src={currentStandingPoseUrl}
-                  alt="Selected Agent Standing Pose"
-                  className="standing-pose-image"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://placehold.co/200x300/CCCCCC/000000?text=Image+Not+Found';
-                    e.currentTarget.alt = 'Image not found';
-                    setIsCurrentPoseLoading(false);
-                  }}
-                  onLoad={() => setIsCurrentPoseLoading(false)}
-                />
-              )
-            )}
-
-            {/* Render mini avatars around the circle */}
-            {filteredAgents.map((agent, index) => {
-              const angle = (360 / filteredAgents.length) * index + rotation;
-              const x = 350 * Math.cos((angle * Math.PI) / 180);
-              const y = 350 * Math.sin((angle * Math.PI) / 180);
-              return (
-                <div
-                  key={agent.id}
-                  className={`avatar-wrapper ${selectedIndex === index ? 'active-avatar' : ''}`}
-                  style={{ transform: `translate(${x}px, ${y}px)` }}
-                  onClick={() => setSelectedIndex(index)}
-                >
-                  <img src={agent.avatar} alt={agent.name} className="avatar" />
-                  <span>{agent.name}</span>
-                </div>
-              );
-            })}
+        {hasError ? (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '50vh',
+            color: '#00bcd4',
+            textAlign: 'center'
+          }}>
+            <h2>Something went wrong</h2>
+            <p>Please refresh the page and try again.</p>
+            <button 
+              onClick={() => {
+                setHasError(false);
+                setSearchQuery('');
+                setSelectedIndex(0);
+              }}
+              style={{
+                background: '#00bcd4',
+                color: '#121212',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                marginTop: '1rem'
+              }}
+            >
+              Reset
+            </button>
           </div>
+        ) : (
+          <div className="main-content">
+            <div className="avatar-circle">
+              {/* Display loading indicator or standing pose image */}
+              {isCurrentPoseLoading && currentStandingPoseUrl && !loadedStandingPoseImages.has(currentStandingPoseUrl) ? (
+                <div className="loading-indicator">Loading Agent...</div>
+              ) : (
+                currentStandingPoseUrl && (
+                  <img
+                    src={currentStandingPoseUrl}
+                    alt="Selected Agent Standing Pose"
+                    className="standing-pose-image"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://placehold.co/200x300/CCCCCC/000000?text=Image+Not+Found';
+                      e.currentTarget.alt = 'Image not found';
+                      setIsCurrentPoseLoading(false);
+                    }}
+                    onLoad={() => setIsCurrentPoseLoading(false)}
+                  />
+                )
+              )}
 
-          {filteredAgents.length > 0 && (
-            <div className="preview-card">
-              <h2 className="preview-name">{filteredAgents[selectedIndex].name}</h2>
-              <img
-                src={filteredAgents[selectedIndex].avatar}
-                alt={filteredAgents[selectedIndex].name}
-                className="preview-avatar"
-              />
-              <p>Click "Details" to view this agent's full description and capabilities.</p>
-              <button onClick={() => navigate('/details', { state: { agent: filteredAgents[selectedIndex] } })}>
-                Details
-              </button>
+              {/* Render mini avatars around the circle */}
+              {filteredAgents.length > 0 ? (
+                filteredAgents.map((agent, index) => {
+                  try {
+                    const angle = (360 / filteredAgents.length) * index + rotation;
+                    const x = 350 * Math.cos((angle * Math.PI) / 180);
+                    const y = 350 * Math.sin((angle * Math.PI) / 180);
+                    
+                    return (
+                      <div
+                        key={agent.id}
+                        className={`avatar-wrapper ${safeSelectedIndex === index ? 'active-avatar' : ''}`}
+                        style={{ transform: `translate(${x}px, ${y}px)` }}
+                        onClick={() => setSelectedIndex(index)}
+                      >
+                        <img 
+                          src={agent.avatar} 
+                          alt={agent.name} 
+                          className="avatar"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://placehold.co/70x70/CCCCCC/000000?text=Agent';
+                            e.currentTarget.alt = 'Agent placeholder';
+                          }}
+                        />
+                        <span>{agent.name}</span>
+                      </div>
+                    );
+                  } catch (error) {
+                    console.error('Error rendering avatar:', error);
+                    setHasError(true);
+                    return null;
+                  }
+                })
+              ) : (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: '#00bcd4',
+                  fontSize: '1.5rem',
+                  textAlign: 'center',
+                  zIndex: 2
+                }}>
+                  <h3>No agents found</h3>
+                  <p>Try a different search term</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {filteredAgents.length > 0 && (
+            {filteredAgents.length > 0 && (
+              <div className="preview-card">
+                <h2 className="preview-name">{filteredAgents[safeSelectedIndex].name}</h2>
+                <img
+                  src={filteredAgents[safeSelectedIndex].avatar}
+                  alt={filteredAgents[safeSelectedIndex].name}
+                  className="preview-avatar"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://placehold.co/150x150/CCCCCC/000000?text=Agent';
+                    e.currentTarget.alt = 'Agent placeholder';
+                  }}
+                />
+                <p>Click "Details" to view this agent's full description and capabilities.</p>
+                <button onClick={() => navigate('/details', { state: { agent: filteredAgents[safeSelectedIndex] } })}>
+                  Details
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {filteredAgents.length > 0 && !hasError && (
           <div className="arrow-controls">
             <div className="arrow-group">
               <span className="arrow-label">Cycle Left</span>

@@ -3,6 +3,7 @@ import './ChatMessages.css';
 import ReactMarkdown from 'react-markdown';
 import MapMessage from './MapMessage';
 import { FiDownload } from 'react-icons/fi';
+import { autoWrapJsonResponse } from '../utils/mapDataParser';
 
 interface Message {
   role: string;
@@ -51,8 +52,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       // Extract image URLs from content if present
       const imageUrls = msg.content ? extractImageUrls(msg.content) : [];
 
+      // Auto-wrap unwrapped JSON responses for agent messages
+      const processedContent = msg.role === 'agent' ? autoWrapJsonResponse(msg.content) : msg.content;
+
       // Remove JSON code blocks for markdown rendering
-      const contentWithoutJson = msg.role === 'agent' ? removeMapJsonBlocks(msg.content) : msg.content;
+      const contentWithoutJson = msg.role === 'agent' ? removeMapJsonBlocks(processedContent) : processedContent;
 
       return (
         <div
@@ -95,10 +99,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                 {contentWithoutJson}
               </ReactMarkdown>
               {/* Render map if agent response contains map data */}
-              <MapMessage message={msg.content} />
+              <MapMessage message={processedContent} />
             </div>
           ) : (
-            <span>{msg.content}</span>
+            <span>{processedContent}</span>
           )}
           {/* Render image if type is image and fileUrl is present */}
           {msg.type === 'image' && msg.fileUrl && (

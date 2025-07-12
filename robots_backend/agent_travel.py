@@ -16,8 +16,11 @@ router = APIRouter(prefix="/travel", tags=["travel"])
 def get_system_prompt():
     return TRAVEL_AGENT_SYSTEM_PROMPT
 
+# model="gemini-2.5-flash-lite-preview-06-17"
+# model="gemini-2.0-flash-lite"
+
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite-preview-06-17",
+    model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("GOOGLE_API_KEY"),
     temperature=0.1,
 )
