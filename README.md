@@ -403,6 +403,9 @@ Or simply include a link to this repository in your acknowledgments.
 - [LangChain](https://github.com/langchain-ai/langchain) for LLM integration
 - [Google AI](https://ai.google.dev/) for the Gemini model
 - [Composio](https://composio.dev/) for tool integrations
+- [OpenStreetMap](https://www.openstreetmap.org/) for map data and routing services
+- [HeiGIT](https://heigit.org/) for OpenRouteService API providing routing and geocoding
+- [AI Horde](https://aihorde.net/) for free AI image generation services
 - [React](https://reactjs.org/) for the frontend framework
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
 
