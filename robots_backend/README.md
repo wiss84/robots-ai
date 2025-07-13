@@ -1,15 +1,15 @@
 # 🤖 Robots-AI Backend
 
-FastAPI-based backend for the Robots-AI multi-agent platform. This backend provides RESTful APIs for 7 specialized AI agents, file processing capabilities, and real-time chat functionality.
+FastAPI-based backend for the Robots-AI multi-agent platform. This backend provides RESTful APIs for 7 specialized AI agents, file processing capabilities, and real-time chat functionality with multimodal support.
 
 ## 🏗️ Architecture
 
 - **Framework**: FastAPI with Python 3.11
-- **LLM**: Google Gemini 2.5 Flash Lite
+- **LLM**: Google Gemini 2.5 Flash Lite Preview
 - **Agent Framework**: LangGraph 0.2.52
-- **Tools**: Composio for external integrations
-- **Database**: Supabase (PostgreSQL)
-- **File Processing**: OCR, PDF parsing, document analysis
+- **Tools**: Composio for external integrations, AI Horde for image generation
+- **File Processing**: OCR, PDF parsing, document analysis with multimodal support
+- **Mapping**: OpenStreetMap and OpenRouteService integration
 
 ## 🚀 Quick Start
 
@@ -17,70 +17,87 @@ FastAPI-based backend for the Robots-AI multi-agent platform. This backend provi
 - Python 3.11
 - Conda (recommended)
 
+### Environment Setup
+Create a `.env` file with the following variables:
+```env
+GOOGLE_API_KEY=your_google_api_key
+COMPOSIO_API_KEY=your_composio_api_key
+AI_Horde_API_KEY=your_ai_horde_api_key
+HeiGIT_API_KEY=your_openrouteservice_api_key
+```
+
+### Installation
+```bash
+pip install -r requirements.txt
+```
+
+### Running the Backend
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
+```
+
 ## 🤖 Available Agents
 
 ### 1. Coding Agent (`/coding`)
-- **Capabilities**: Code generation, debugging, code review
-- **Tools**: Code interpreter, search, file operations
+- **Capabilities**: Code generation, debugging, code review, file operations
+- **Tools**: Code interpreter, search, file operations via Composio
 - **Use Case**: Programming assistance and technical support
 
 ### 2. Finance Agent (`/finance`)
-- **Capabilities**: Investment analysis, market research
-- **Tools**: Financial data, market analysis
+- **Capabilities**: Investment analysis, market research, financial planning
+- **Tools**: Financial data, search, market analysis via Composio
 - **Use Case**: Financial planning and investment guidance
 
 ### 3. News Agent (`/news`)
-- **Capabilities**: News aggregation, analysis
-- **Tools**: News APIs, search
+- **Capabilities**: News aggregation, analysis, current events
+- **Tools**: News APIs, search via Composio
 - **Use Case**: Current events and trend analysis
 
 ### 4. Real Estate Agent (`/realestate`)
-- **Capabilities**: Property search, market insights
-- **Tools**: Real estate APIs, location data
+- **Capabilities**: Property search, market insights, location analysis
+- **Tools**: Search APIs, mapping tools (OSM/ORS)
 - **Use Case**: Property investment and market analysis
 
 ### 5. Travel Agent (`/travel`)
-- **Capabilities**: Trip planning, recommendations
-- **Tools**: Travel APIs, booking systems
+- **Capabilities**: Trip planning, recommendations, route optimization
+- **Tools**: Search APIs, mapping tools (OSM/ORS)
 - **Use Case**: Travel planning and booking assistance
 
 ### 6. Image Generator (`/image`)
-- **Capabilities**: AI image creation, editing
-- **Tools**: Image generation APIs
+- **Capabilities**: AI image creation, editing, multimodal processing
+- **Tools**: AI Horde image generation, multimodal support
 - **Use Case**: Creative design and image manipulation
 
 ### 7. Shopping Agent (`/shopping`)
-- **Capabilities**: Product search, price comparison
-- **Tools**: Shopping APIs, product databases
+- **Capabilities**: Product search, price comparison, shopping assistance
+- **Tools**: Shopping APIs, product databases via Composio
 - **Use Case**: Shopping assistance and deal hunting
 
-### 8. More Agents will be added in near future
+## 🔌 API Endpoints
 
 ### Main Chat Endpoint
 ```http
 POST /chat
 Content-Type: application/json
+Authorization: Bearer your_token
 
 {
   "message": "Hello, can you help me with coding?",
   "agent_id": "coding",
   "conversation_id": "optional_conversation_id",
   "user_name": "John",
-  "file_content": "optional_file_content"
+  "file_content": "optional_file_content",
+  "session_id": "optional_session_id"
 }
 ```
 
 ### File Upload
 ```http
-POST /upload
+POST /files/upload
 Content-Type: multipart/form-data
 
 file: [binary file data]
-```
-
-### Health Check
-```http
-GET /health
+conversation_id: "optional_conversation_id"
 ```
 
 ### Agent-Specific Endpoints
@@ -93,13 +110,23 @@ Each agent has its own endpoint:
 - `POST /image/ask`
 - `POST /shopping/ask`
 
+### Health Check
+```http
+GET /health
+```
+
+### Root Endpoint
+```http
+GET /
+```
+
 ## 📁 Project Structure
 
 ```
 robots_backend/
 ├── main.py                    # FastAPI application entry point
 ├── requirements.txt           # Python dependencies
-├── .env.example              # Environment variables template
+├── .composio.lock            # Composio tool lock file
 ├── agent_coding.py           # Coding agent implementation
 ├── agent_finance.py          # Finance agent implementation
 ├── agent_news.py             # News agent implementation
@@ -108,7 +135,7 @@ robots_backend/
 ├── agent_image_generator.py  # Image generation agent
 ├── agent_shopping.py         # Shopping agent implementation
 ├── agents_system_prompts.py  # System prompts for all agents
-├── tools.py                  # Shared tools and utilities
+├── tools.py                  # Shared tools (image generation)
 ├── file_processor.py         # File processing logic
 ├── file_upload.py           # File upload handling
 ├── ors_tools.py             # OpenRouteService tools
@@ -117,40 +144,49 @@ robots_backend/
 └── README_FILE_PROCESSING.md # File processing documentation
 ```
 
-## 🛠️ Development
+## 🛠️ Key Features
 
-### Running in Development Mode
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
-```
+### Multimodal Support
+- **Image Processing**: Agents can process images sent via URLs
+- **File Upload**: Support for PDF, images, spreadsheets, text files, Word documents
+- **OCR**: Automatic text extraction from images and documents
+- **Content Analysis**: Extracted content is included in agent conversations
 
-### Running in Production
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
-```
+### Mapping Integration
+- **OpenStreetMap Tools**: Geocoding, routing, POI search, bounding box search
+- **OpenRouteService Tools**: Advanced routing, isochrones, elevation data
+- **Real-time Data**: Live mapping and location services
 
-### Testing
-```bash
-# Run tests (if you have pytest installed)
-pytest
+### File Processing
+- **Multiple Formats**: PDF, DOCX, XLSX, images, text files
+- **Content Extraction**: Automatic text and metadata extraction
+- **Error Handling**: Robust error handling for various file types
+- **Storage**: Files stored in `uploaded_files/` directory
 
-# Check API health
-curl http://localhost:8000/health
-```
+### Conversation Management
+- **Session Persistence**: LangGraph memory for conversation history
+- **Thread Management**: Unique conversation IDs for each chat session
+- **State Management**: Proper state handling across agent interactions
 
 ## 🔧 Configuration
 
 ### CORS Settings
-Configure allowed origins in your `.env` file:
-```env
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://yourdomain.com
+Configured for development:
+```python
+allow_origins=[
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",  # React dev server
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://localhost:4173",  # Vite preview
+    "http://127.0.0.1:4173"
+]
 ```
 
-### Memory Management
-- Short term conversation history is stored in LangGraph memory session
-- long term conversation history is stored in Supabase (PostgreSQL)
-- File uploads are stored in `uploaded_files/` directory
-- Consider implementing cleanup for old files
+### Security
+- **Bearer Token Authentication**: All endpoints require authentication
+- **File Validation**: Uploaded files are validated for type and size
+- **Error Handling**: Comprehensive error handling with user-friendly messages
 
 ## 🚨 Troubleshooting
 
@@ -171,13 +207,19 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://yourdomain.com
 3. **CORS Errors**
    ```
    CORS error in browser
-   Solution: Check CORS_ORIGINS in .env file
+   Solution: Check CORS_ORIGINS configuration in main.py
    ```
 
 4. **File Upload Issues**
    ```
    File upload fails
    Solution: Check uploaded_files/ directory permissions
+   ```
+
+5. **Image Processing Errors**
+   ```
+   Image processing fails
+   Solution: Check AI Horde API key and network connectivity
    ```
 
 ### Debug Mode
@@ -189,26 +231,27 @@ uvicorn main:app --reload --log-level debug
 ## 🔒 Security
 
 ### API Security
-- All endpoints require authentication (Bearer token)
+- All endpoints require Bearer token authentication
 - File uploads are validated for type and size
-- CORS is properly configured
+- CORS is properly configured for development
 
 ### Environment Variables
 - Never commit `.env` files to version control
-- Use `.env.example` as a template
+- Use environment variables for all API keys
 - Rotate API keys regularly
 
 ### File Security
 - Uploaded files are stored in a dedicated directory
 - File types are validated before processing
+- Content extraction is performed securely
 
 ## 📈 Performance
 
 ### Optimization Tips
 1. **Use async/await** for I/O operations
 2. **Implement caching** for frequently accessed data
-3. **Use connection pooling** for database connections
-4. **Monitor memory usage** for large file processing
+3. **Monitor memory usage** for large file processing
+4. **Use connection pooling** for external API calls
 
 ### Scaling
 - Use multiple workers with uvicorn

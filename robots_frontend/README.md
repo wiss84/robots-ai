@@ -1,15 +1,16 @@
 # 🤖 Robots-AI Frontend
 
-Modern React TypeScript frontend for the Robots-AI multi-agent platform. Features a responsive chat interface with real-time agent interactions, file upload capabilities, and dynamic agent avatars.
+Modern React TypeScript frontend for the Robots-AI multi-agent platform. Features a responsive chat interface with real-time agent interactions, file upload capabilities, interactive maps, and dynamic agent avatars with pose animations.
 
 ## 🏗️ Architecture
 
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **Styling**: CSS Modules
+- **Framework**: React 19 with TypeScript
+- **Build Tool**: Vite 6
+- **Styling**: CSS with modern design system
 - **State Management**: React Hooks
-- **Routing**: React Router v6
+- **Routing**: React Router v7
 - **Authentication**: Supabase Auth
+- **Maps**: Leaflet with React-Leaflet
 - **UI Components**: Custom components with modern design
 
 ## 🚀 Quick Start
@@ -23,7 +24,7 @@ Modern React TypeScript frontend for the Robots-AI multi-agent platform. Feature
 
 1. **Activate your conda environment**
    ```bash
-   conda activate robots_app
+   conda activate cs_agent
    ```
 
 2. **Install dependencies**
@@ -33,10 +34,7 @@ Modern React TypeScript frontend for the Robots-AI multi-agent platform. Feature
    ```
 
 3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Supabase credentials
-   ```
+   Create a `.env` file in the `robots_frontend` directory with your Supabase credentials.
 
 4. **Start development server**
    ```bash
@@ -122,27 +120,38 @@ using (user_id = auth.uid());
 ## 🎨 Features
 
 ### Chat Interface
-- **Real-time Chat**: Interactive chat with typing indicators
-- **Agent Selection**: Choose from 7 specialized AI agents
-- **File Upload**: Drag-and-drop file upload with preview
-- **Message History**: Persistent conversation history
-- **Responsive Design**: Works on desktop and mobile
+- **Real-time Chat**: Interactive chat with typing indicators and pose animations
+- **Agent Selection**: Choose from 7 specialized AI agents with unique avatars
+- **File Upload**: Drag-and-drop file upload with content extraction
+- **Message History**: Persistent conversation history with Supabase
+- **Responsive Design**: Works on desktop and mobile devices
+- **Error Handling**: User-friendly error messages and retry mechanisms
 
-### Agent Avatars
-- **Dynamic Poses**: Agents change poses based on activity
-- **Personalization**: Agents address users by name
-- **Visual Feedback**: Greeting, thinking, typing, and idle poses
+### Agent Avatars & Poses
+- **Dynamic Poses**: 6 different poses per agent (greeting, typing, thinking, arms_crossing, wondering, painting)
+- **Personalization**: Agents address users by name from Supabase profile
+- **Visual Feedback**: Real-time pose changes based on agent activity
+- **Agent-Specific**: Each agent has unique avatar and pose sets
 
 ### File Processing
-- **Multi-format Support**: Images, PDFs, documents
-- **OCR Processing**: Text extraction from images
-- **Preview System**: File preview before upload
-- **Progress Indicators**: Upload progress tracking
+- **Multi-format Support**: PDF, DOCX, XLSX, images, text files
+- **Content Extraction**: Automatic text extraction with backend processing
+- **Preview System**: File upload status and success indicators
+- **Progress Tracking**: Upload progress and error handling
+
+### Interactive Maps
+- **Leaflet Integration**: Interactive maps with OpenStreetMap tiles
+- **Location Display**: Show points of interest, routes, and areas
+- **Custom Markers**: Color-coded markers for different POI types
+- **Route Visualization**: Display routes with distance and duration
+- **Map Messages**: Special message component for map data
 
 ### User Experience
-- **Dark/Light Theme**: Toggle between themes (only in the Chat UI)
-- **Loading States**: Smooth loading animations
-- **Error Handling**: User-friendly error messages
+- **Authentication**: Supabase-based user authentication
+- **Loading States**: Smooth loading animations and indicators
+- **Error Boundaries**: Graceful error handling with fallbacks
+- **Usage Monitoring**: Track API usage and quotas
+- **Conversation Management**: Create, rename, and delete conversations
 
 ## 📁 Project Structure
 
@@ -150,18 +159,22 @@ using (user_id = auth.uid());
 robots_frontend/
 ├── public/                    # Static assets
 │   ├── avatars/              # Agent avatar images
-│   │   ├── coding_agent/     # Coding agent poses
-│   │   ├── finance_agent/    # Finance agent poses
-│   │   ├── news_agent/       # News agent poses
-│   │   ├── realestate_agent/ # Real estate agent poses
-│   │   ├── travel_agent/     # Travel agent poses
-│   │   ├── image_agent/      # Image agent poses
-│   │   └── shopping_agent/   # Shopping agent poses
+│   │   ├── coding_agent/     # Coding agent poses (6 poses)
+│   │   ├── finance_agent/    # Finance agent poses (6 poses)
+│   │   ├── news_agent/       # News agent poses (6 poses)
+│   │   ├── realestate_agent/ # Real estate agent poses (6 poses)
+│   │   ├── travel_agent/     # Travel agent poses (6 poses)
+│   │   ├── image_agent/      # Image agent poses (7 poses incl. painting)
+│   │   └── shopping_agent/   # Shopping agent poses (6 poses)
 │   ├── assets/               # Other static assets
+│   │   ├── homepage.webp     # Homepage background
+│   │   ├── left.webp         # Left side image
+│   │   ├── right.webp        # Right side image
+│   │   └── image-not-found.png # Fallback image
 │   └── service-worker.js     # Service worker for caching
 ├── src/                      # Source code
 │   ├── components/           # React components
-│   │   ├── ChatInput.tsx     # Chat input component
+│   │   ├── ChatInput.tsx     # Chat input with file upload
 │   │   ├── ChatInput.css     # Chat input styles
 │   │   ├── ChatMessages.tsx  # Message display component
 │   │   ├── ChatMessages.css  # Message display styles
@@ -176,7 +189,9 @@ robots_frontend/
 │   │   ├── MapMessage.tsx    # Map message component
 │   │   ├── MapMessage.css    # Map message styles
 │   │   ├── Navbar.tsx        # Navigation component
-│   │   └── UserAvatar.tsx    # User avatar component
+│   │   ├── UserAvatar.tsx    # User avatar component
+│   │   ├── ErrorBoundary.tsx # Error boundary component
+│   │   └── UsageMonitor.tsx  # Usage monitoring component
 │   ├── pages/                # Page components
 │   │   ├── AgentSelection.tsx # Agent selection page
 │   │   ├── AgentSelection.css # Agent selection styles
@@ -192,12 +207,12 @@ robots_frontend/
 │   ├── hooks/                # Custom React hooks
 │   │   └── useAuth.ts        # Authentication hook
 │   ├── data/                 # Static data
-│   │   └── AgentDescriptions.ts # Agent descriptions
+│   │   └── AgentDescriptions.ts # Agent descriptions and names
 │   ├── utils/                # Utility functions
-│   │   └── mapDataParser.ts  # Map data parsing
+│   │   └── mapDataParser.ts  # Map data parsing utilities
 │   ├── assets/               # Static assets
 │   │   └── react.svg         # React logo
-│   ├── App.tsx               # Main app component
+│   ├── App.tsx               # Main app component with routing
 │   ├── App.css               # App styles
 │   ├── main.tsx              # App entry point
 │   ├── index.css             # Global styles
@@ -209,7 +224,7 @@ robots_frontend/
 ├── tsconfig.node.json        # Node TypeScript config
 ├── vite.config.ts            # Vite configuration
 ├── eslint.config.js          # ESLint configuration
-└── .env.example              # Environment variables template
+└── index.html                # HTML entry point
 ```
 
 ## 🎨 Component Documentation
@@ -218,83 +233,91 @@ robots_frontend/
 
 #### ChatInput.tsx & ChatInput.css
 - **Purpose**: Text input and file upload for chat
-- **Props**: `input`, `setInput`, `loadingMessages`, `handleSend`
-- **Features**: File drag-and-drop, upload progress, typing indicators
+- **Props**: `input`, `setInput`, `loadingMessages`, `handleSend`, `onFileSelected`
+- **Features**: File drag-and-drop, upload progress, typing indicators, file attachment
 
 #### ChatMessages.tsx & ChatMessages.css
 - **Purpose**: Display chat messages and agent responses
 - **Props**: `messages`, `loadingMessages`, `userName`, `agentName`
-- **Features**: Message formatting, markdown rendering, image display, message timestamps
+- **Features**: Message formatting, markdown rendering, image display, message timestamps, map integration
 
 #### ChatPoses.tsx & ChatPoses.css
-- **Purpose**: Display agent avatar poses
+- **Purpose**: Display agent avatar poses with animations
 - **Props**: `agentId`, `pose`
-- **Features**: Dynamic pose changes, fallback images, pose transitions
+- **Features**: Dynamic pose changes, agent-specific avatars, pose transitions, fallback images
 
 #### ChatSidebar.tsx & ChatSidebar.css
 - **Purpose**: Sidebar for conversation management
-- **Features**: Conversation list, agent switching, user profile
+- **Features**: Conversation list, agent switching, user profile, conversation CRUD operations
 
 #### FileUpload.tsx & FileUpload.css
-- **Purpose**: File upload interface
-- **Props**: `onFileUpload`, `loading`
-- **Features**: Drag-and-drop, file validation, progress tracking, file preview
+- **Purpose**: File upload interface with backend integration
+- **Props**: `conversationId`, `onUploadSuccess`, `onFileSelected`
+- **Features**: Drag-and-drop, file validation, progress tracking, content extraction
 
 #### Map.tsx & Map.css
-- **Purpose**: Map integration component
-- **Features**: Interactive maps, location display, route visualization
+- **Purpose**: Interactive map integration with Leaflet
+- **Features**: OpenStreetMap tiles, custom markers, route visualization, polygon display, popup information
 
 #### MapMessage.tsx & MapMessage.css
-- **Purpose**: Map message display component
-- **Features**: Map data rendering, location information display
+- **Purpose**: Specialized message component for map data
+- **Features**: Map data rendering, location information display, interactive elements
 
 #### Navbar.tsx
-- **Purpose**: Navigation component
-- **Features**: User authentication, navigation links, responsive design
+- **Purpose**: Navigation component with authentication
+- **Features**: User authentication, navigation links, responsive design, user profile
 
 #### UserAvatar.tsx
-- **Purpose**: User avatar display
+- **Purpose**: User avatar display component
 - **Features**: User profile pictures, fallback avatars, authentication status
+
+#### ErrorBoundary.tsx
+- **Purpose**: Error boundary for graceful error handling
+- **Features**: Error catching, fallback UI, error reporting
+
+#### UsageMonitor.tsx
+- **Purpose**: Monitor API usage and quotas
+- **Features**: Usage tracking, quota monitoring, user feedback
 
 ### Page Components
 
 #### AgentSelection.tsx & AgentSelection.css
-- **Purpose**: Agent selection interface
-- **Features**: Agent cards, search functionality, filtering, agent descriptions
+- **Purpose**: Agent selection interface with descriptions
+- **Features**: Agent cards, search functionality, filtering, agent descriptions, avatar display
 
 #### ChatUI.tsx & ChatUI.css
-- **Purpose**: Main chat interface
-- **Features**: Chat sidebar, message history, real-time updates, theme toggle
+- **Purpose**: Main chat interface with full functionality
+- **Features**: Chat sidebar, message history, real-time updates, file upload, map integration, pose animations
 
 #### Details.tsx & Details.css
-- **Purpose**: Agent details page
-- **Features**: Agent information, capabilities, usage examples
+- **Purpose**: Agent details and information page
+- **Features**: Agent information, capabilities, usage examples, feature highlights
 
 #### HomePage.tsx & HomePage.css
-- **Purpose**: Landing page
-- **Features**: Welcome message, navigation to agent selection, feature highlights
+- **Purpose**: Landing page with modern design
+- **Features**: Welcome message, navigation to agent selection, feature highlights, responsive design
 
 #### SignIn.tsx & Auth.css
-- **Purpose**: Sign in page
-- **Features**: User authentication, form validation, error handling
+- **Purpose**: Sign in page with Supabase authentication
+- **Features**: User authentication, form validation, error handling, responsive design
 
 #### SignUp.tsx & Auth.css
-- **Purpose**: Sign up page
-- **Features**: User registration, form validation, password requirements
+- **Purpose**: Sign up page with user registration
+- **Features**: User registration, form validation, password requirements, error handling
 
 ### Data & Utilities
 
 #### AgentDescriptions.ts
 - **Purpose**: Static agent descriptions and metadata
-- **Content**: Agent names, descriptions, capabilities, keywords
+- **Content**: Agent names, descriptions, capabilities, keywords for all 7 agents
 
 #### useAuth.ts
-- **Purpose**: Authentication hook
-- **Features**: User authentication state, login/logout functions
+- **Purpose**: Authentication hook with Supabase integration
+- **Features**: User authentication state, login/logout functions, user profile management
 
 #### mapDataParser.ts
-- **Purpose**: Map data parsing utilities
-- **Features**: Location data processing, map coordinate handling
+- **Purpose**: Map data parsing utilities for backend integration
+- **Features**: Location data processing, map coordinate handling, route data parsing
 
 ## 🛠️ Development Workflow
 
@@ -320,7 +343,6 @@ npm run dev          # Start development server
 npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript type checking
 ```
 
 ## 🔧 Configuration Files
@@ -329,3 +351,81 @@ npm run type-check   # Run TypeScript type checking
 - **tsconfig.json**: TypeScript configuration
 - **eslint.config.js**: ESLint rules and formatting
 - **package.json**: Dependencies and scripts
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Backend Connection Errors**
+   ```
+   Error: Failed to fetch from backend
+   Solution: Ensure backend is running on port 8000
+   ```
+
+2. **Supabase Authentication Issues**
+   ```
+   Error: Supabase connection failed
+   Solution: Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env
+   ```
+
+3. **File Upload Errors**
+   ```
+   Error: File upload failed
+   Solution: Check backend file upload endpoint and file size limits
+   ```
+
+4. **Map Loading Issues**
+   ```
+   Error: Map tiles not loading
+   Solution: Check internet connection and Leaflet CDN
+   ```
+
+### Debug Mode
+Enable debug logging in browser console and check network tab for API calls.
+
+## 🔒 Security
+
+### Authentication
+- Supabase-based user authentication
+- Secure token management
+- Row-level security for user data
+
+### File Upload
+- File type validation
+- Size limits enforced
+- Secure content extraction
+
+### API Security
+- Bearer token authentication
+- CORS properly configured
+- Error handling for sensitive data
+
+## 📈 Performance
+
+### Optimization Tips
+1. **Use React.memo** for expensive components
+2. **Implement lazy loading** for large components
+3. **Optimize images** and use WebP format
+4. **Use service worker** for caching
+
+### Scaling
+- Vite for fast development builds
+- Code splitting for production
+- Optimized bundle sizes
+- CDN for static assets
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**Frontend for Robots-AI Multi-Agent Platform**
