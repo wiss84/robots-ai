@@ -29,6 +29,21 @@ A sophisticated multi-agent AI system built with React frontend and Python backe
 - **Real-time Chat**: Interactive chat interface with typing indicators
 - **Service Worker**: Cached assets for faster loading
 
+## ⚠️ Current Limitations
+
+### Image Generation
+- **Processing Time**: Image generation takes 2-10 minutes depending on the AI Horde queue and model selection
+- **Queue-based System**: Processing time varies based on server load and model popularity
+
+### Speech Features
+- **Speech-to-Text**: Not yet integrated
+- **Speech-to-Speech**: Not yet integrated
+- **Voice Features**: Text-based communication only
+
+### Real Estate Search
+- **Rental Listings**: Web search provides links to rental websites but cannot extract individual apartment coordinates
+- **Map Integration**: Limited to building locations via OpenStreetMap, not real-time rental listings
+
 ## 🚀 Quick Start
 
 ### Prerequisites
