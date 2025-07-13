@@ -9,6 +9,8 @@ import ChatSidebar from '../components/ChatSidebar';
 import ChatMessages from '../components/ChatMessages';
 import ChatInput from '../components/ChatInput';
 import ChatPoses from '../components/ChatPoses';
+import ErrorBoundary from '../components/ErrorBoundary';
+import UsageMonitor from '../components/UsageMonitor';
 import { agentNames } from '../data/AgentDescriptions';
 
 interface ChatMessage {
@@ -143,40 +145,24 @@ function ChatUI() {
     let agentMessage = userMessage;
     let chatMessage: ChatMessage = { role: 'user', content: userMessage };
     let fileContent = null;
+    
     if (fileInfo) {
-      const isImage = fileInfo.content_type && fileInfo.content_type.startsWith('image/');
-      chatMessage = {
-        role: 'user',
-        type: isImage ? 'image' : 'file',
-        content: userMessage,
-        fileName: fileInfo.filename,
-        fileUrl: `http://127.0.0.1:8000/uploaded_files/${fileInfo.filename}`,
-      };
-
-      // Use extracted content for all file types
-      if (fileInfo.extracted_content) {
-        fileContent = fileInfo.extracted_content;
-      }
-
-      // For images, include the URL for visual processing (backend will convert to base64)
-      if (isImage) {
-        agentMessage = userMessage
-          ? `${userMessage}\n[Image: http://127.0.0.1:8000/uploaded_files/${fileInfo.filename}]`
-          : `[Image: http://127.0.0.1:8000/uploaded_files/${fileInfo.filename}]`;
-      }
+      fileContent = fileInfo.extracted_content || fileInfo.content || '';
+      agentMessage = `${userMessage}\n\n[File: ${fileInfo.filename}]\n${fileContent}`;
+      chatMessage = { role: 'user', content: agentMessage };
     }
+    
+    // Add user message to UI immediately
     setMessages(prev => [...prev, chatMessage]);
-    // Save user message to Supabase
-    await supabase.from('messages').insert([
-      {
-        conversation_id: convId,
-        user_id: user.id,
-        agent_id: agentId,
-        role: 'user',
-        content: chatMessage.content
-      }
-    ]);
+    
     try {
+      console.log('Sending request to backend:', {
+        agent_id: agentId,
+        message: agentMessage,
+        conversation_id: convId,
+        user_name: userName
+      });
+
       const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
@@ -191,7 +177,52 @@ function ChatUI() {
           user_name: userName // Pass user name to backend
         })
       });
+      
+      console.log('Response status:', res.status);
+      console.log('Response ok:', res.ok);
+      
+      // Update usage stats
+      if ((window as any).updateUsage) {
+        (window as any).updateUsage();
+      }
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('HTTP Error:', res.status, errorText);
+        throw new Error(`HTTP ${res.status}: ${res.statusText} - ${errorText}`);
+      }
+      
       const data = await res.json();
+      console.log('Response data:', data);
+      
+      // Check for API quota errors in the response
+      if (data.response && (
+        data.response.includes('API Quota Exceeded') || 
+        data.response.includes('Rate Limit Reached') ||
+        data.response.includes('ResourceExhausted')
+      )) {
+        // Set error pose and show quota error message
+        setPose('wondering');
+        setMessages(prev => [...prev, { 
+          role: 'agent', 
+          content: data.response 
+        }]);
+        
+        // Save error message to database
+        await supabase.from('messages').insert([
+          {
+            conversation_id: convId,
+            user_id: user.id,
+            agent_id: agentId,
+            role: 'agent',
+            content: data.response
+          }
+        ]);
+        
+        setLoadingMessages(false);
+        return;
+      }
+      
       // Save agent message to Supabase
       await supabase.from('messages').insert([
         {
@@ -203,8 +234,39 @@ function ChatUI() {
         }
       ]);
       setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'agent', content: 'Error: Could not reach backend.' }]);
+    } catch (err: any) {
+      console.error('Chat error:', err);
+      
+      // Handle specific error types
+      let errorMessage = 'Error: Could not reach backend.';
+      
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        errorMessage = '⚠️ **Connection Error**\n\nUnable to connect to the server. Please check your internet connection and try again.';
+      } else if (err.message.includes('500') || err.message.includes('Internal Server Error')) {
+        errorMessage = '⚠️ **Server Error**\n\nThe server encountered an error. Please try again in a moment.';
+      } else if (err.message.includes('429') || err.message.includes('Too Many Requests')) {
+        errorMessage = '⚠️ **Rate Limit Exceeded**\n\nToo many requests. Please wait a moment before trying again.';
+      } else if (err.message.includes('ResourceExhausted') || err.message.includes('quota')) {
+        errorMessage = '⚠️ **API Quota Exceeded**\n\nI\'ve reached my current usage limit. Please try again in a few minutes.';
+      }
+      
+      setPose('wondering');
+      setMessages(prev => [...prev, { role: 'agent', content: errorMessage }]);
+      
+      // Save error message to database
+      try {
+        await supabase.from('messages').insert([
+          {
+            conversation_id: convId,
+            user_id: user.id,
+            agent_id: agentId,
+            role: 'agent',
+            content: errorMessage
+          }
+        ]);
+      } catch (dbError) {
+        console.error('Failed to save error message to database:', dbError);
+      }
     }
     setLoadingMessages(false);
     if (messages.length === 0 && convId) {
@@ -303,11 +365,12 @@ function ChatUI() {
   const firstName = capitalize(firstNameRaw);
 
   return (
-    <>
-      <Navbar showHomeLink={true} showAgentSelectionLink={true} />
+    <ErrorBoundary>
       <div className="chat-root">
+        <Navbar showHomeLink={true} showAgentSelectionLink={true} />
+        <UsageMonitor />
         {/* Sidebar */}
-        <ChatSidebar
+        <ChatSidebar 
           sidebarOpen={sidebarOpen}
           conversations={conversations}
           showAllConversations={showAllConversations}
@@ -354,19 +417,19 @@ function ChatUI() {
                   agentName={agentName}
                   agentId={agentId}
                 />
-                <ChatInput
-                  input={input}
-                  setInput={setInput}
-                  loadingMessages={loadingMessages}
-                  handleSend={handleSend}
-                  conversationId={conversationId}
-                />
               </div>
+              <ChatInput 
+                input={input}
+                setInput={setInput}
+                loadingMessages={loadingMessages}
+                handleSend={handleSend}
+                conversationId={conversationId}
+              />
             </>
           )}
         </div>
       </div>
-    </>
+    </ErrorBoundary>
   );
 }
 

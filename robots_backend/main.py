@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os
@@ -13,6 +14,7 @@ import time
 from file_upload import router as file_upload_router
 import requests
 import base64
+import traceback
 
 # Load environment variables
 load_dotenv()
@@ -36,7 +38,14 @@ app.mount("/uploaded_files", StaticFiles(directory="uploaded_files"), name="uplo
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # React dev server
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://localhost:4173",  # Vite preview
+        "http://127.0.0.1:4173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,10 +66,8 @@ class ChatMessage(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    agent_id: str
+    conversation_id: str
     session_id: str
-    conversation_id: str  # Add conversation_id to response
-    memory_updated: bool = False
 
 class AgentInfo(BaseModel):
     id: str
@@ -118,12 +125,20 @@ async def chat_with_agent(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     try:
+        print(f"=== CHAT REQUEST RECEIVED ===")
+        print(f"Agent ID: {chat_request.agent_id}")
+        print(f"Message: {chat_request.message[:100]}...")
+        print(f"Conversation ID: {chat_request.conversation_id}")
+        
         agent_id = chat_request.agent_id
         message = chat_request.message
         session_id = chat_request.session_id or "default"
         conversation_id = chat_request.conversation_id
         if not conversation_id:
             conversation_id = f"thread_{agent_id}_{int(time.time())}"
+        
+        print(f"Processing with conversation_id: {conversation_id}")
+        
         agent_graphs = {
             "coding": coding_graph,
             "finance": finance_graph,
@@ -133,8 +148,13 @@ async def chat_with_agent(
             "image": image_generator_graph,
             "shopping": shopping_graph,
         }
+        
         if agent_id not in agent_graphs:
+            print(f"ERROR: Unknown agent_id: {agent_id}")
             raise HTTPException(status_code=400, detail=f"Unknown agent_id: {agent_id}")
+        
+        print(f"Agent {agent_id} found, proceeding...")
+        
         # Detect image URL in message
         image_url = None
         import re
@@ -145,84 +165,133 @@ async def chat_with_agent(
             message = re.sub(r"\n?\[Image: http[s]?://[^\]]+\]", "", message).strip()
         image_base64 = None
         mime_type = 'image/webp'
+        
+        # Process image if provided
         if image_url:
-            # Extract filename from URL and read directly from disk
-            match = re.search(r'/uploaded_files/([^/]+)$', image_url)
-            if match:
-                filename = match.group(1)
-                file_path = os.path.join(os.getcwd(), "uploaded_files", filename)
-                try:
-                    with open(file_path, "rb") as f:
-                        image_bytes = f.read()
-                        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                        # Try to guess mime type from extension
-                        ext = filename.split('.')[-1].lower()
-                        if ext in ['jpg', 'jpeg']:
-                            mime_type = 'image/jpeg'
-                        elif ext == 'png':
-                            mime_type = 'image/png'
-                        elif ext == 'webp':
-                            mime_type = 'image/webp'
-                        elif ext == 'gif':
-                            mime_type = 'image/gif'
-                except Exception as e:
-                    print(f"Failed to read/encode image from disk: {e}")
-            else:
-                print("Could not extract filename from image_url")
-        # Build state with multimodal message if image present
+            try:
+                response = requests.get(image_url)
+                response.raise_for_status()
+                image_base64 = base64.b64encode(response.content).decode('utf-8')
+                # Try to detect MIME type
+                content_type = response.headers.get('content-type', 'image/webp')
+                if 'jpeg' in content_type or 'jpg' in content_type:
+                    mime_type = 'image/jpeg'
+                elif 'png' in content_type:
+                    mime_type = 'image/png'
+                elif 'gif' in content_type:
+                    mime_type = 'image/gif'
+            except Exception as e:
+                print(f"Error processing image: {e}")
+                # Continue without image if there's an error
+        
+        # Add user name to message if provided
+        if hasattr(chat_request, 'user_name') and chat_request.user_name:
+            message = f"[User Name: {chat_request.user_name}]\n{message}"
+        
+        # Add file content to message if provided
+        if hasattr(chat_request, 'file_content') and chat_request.file_content:
+            message = f"{message}\n\nFile Content:\n{chat_request.file_content}"
+        
+        print(f"Final message to agent: {message[:200]}...")
+        
+        # Create the appropriate message based on whether there's an image
         if image_base64:
-            message_content = build_multimodal_message(message, image_base64, mime_type)
-            state = {"messages": [HumanMessage(content=message_content)]}
+            from langchain_core.messages import HumanMessage
+            human_message = HumanMessage(
+                content=[
+                    {
+                        "type": "text",
+                        "text": message
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{image_base64}"
+                        }
+                    }
+                ]
+            )
         else:
-            state = {"messages": [HumanMessage(content=message)]}
-        # Add file content to the message if provided
-        if chat_request.file_content:
-            file_context = f"\n\n[Uploaded File Content:\n{chat_request.file_content}\n]"
-            if image_base64:
-                # Add file content as an extra text part in multimodal message
-                state["messages"][0].content.insert(1, {"type": "text", "text": file_context})
-            else:
-                state["messages"][0].content += file_context
-        # Add user name to the message if provided
-        if chat_request.user_name:
-            user_context = f"\n\n[User Name: {chat_request.user_name}]"
-            if image_base64:
-                # Add user name as an extra text part in multimodal message
-                state["messages"][0].content.insert(1, {"type": "text", "text": user_context})
-            else:
-                state["messages"][0].content += user_context
-        # Use the original config format for LangGraph 0.2.0
-        config = {"configurable": {"thread_id": conversation_id}}
-        result = agent_graphs[agent_id].invoke(state, config=config)  # type: ignore
+            from langchain_core.messages import HumanMessage
+            human_message = HumanMessage(content=message)
+        
+        # Get the appropriate graph
+        graph = agent_graphs[agent_id]
+        
+        # Create initial state
+        state = {"messages": [human_message]}
+        
+        # Configure the graph with conversation history
+        config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 50}
+        
+        print(f"Invoking graph for agent {agent_id}...")
+        
+        # Invoke the graph
+        result = graph.invoke(state, config=config)
+        
+        print(f"Graph invocation completed, processing result...")
+        
+        # Extract the response
         if result and "messages" in result and result["messages"]:
             last_message = result["messages"][-1]
+            
+            # Handle different message types
             if hasattr(last_message, 'content'):
-                response_text = last_message.content
-            elif isinstance(last_message, dict) and 'content' in last_message:
-                response_text = last_message['content']
+                response_content = last_message.content
             else:
-                response_text = str(last_message)
-            if isinstance(response_text, list):
-                response_text = '\n'.join(str(item).strip() for item in response_text if str(item).strip())
-                response_text = response_text.replace('```\n*', '```\n\n*')
-                response_text = response_text.replace('```\n-', '```\n\n-')
-                response_text = response_text.replace('```\n1.', '```\n\n1.')  
-                response_text = response_text.replace('```\n#', '```\n\n#')   
-            response_text = str(response_text)
+                response_content = str(last_message)
+            
+            # Check if response is empty and provide fallback
+            if not response_content or response_content.strip() == "":
+                response_content = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
+            
+            print(f"Response content length: {len(response_content)}")
+            print(f"Response preview: {response_content[:100]}...")
+            
+            response = ChatResponse(
+                response=response_content,
+                conversation_id=conversation_id,
+                session_id=session_id
+            )
+            
+            print(f"Returning response successfully")
+            return response
         else:
-            response_text = "No response generated. Please try again."
-        return ChatResponse(
-            response=response_text,
-            agent_id=agent_id,
-            session_id=session_id,
-            conversation_id=conversation_id,
-            memory_updated=True
-        )
+            print(f"No messages in result, returning fallback")
+            return ChatResponse(
+                response="No response generated. Please try again.",
+                conversation_id=conversation_id,
+                session_id=session_id
+            )
+            
     except Exception as e:
         import traceback
         print("=== ERROR IN /chat ENDPOINT ===")
+        print(f"Error type: {type(e)}")
+        print(f"Error message: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        
+        # Handle specific API quota errors
+        error_message = str(e)
+        if "ResourceExhausted" in error_message or "quota" in error_message.lower():
+            return ChatResponse(
+                response="⚠️ **API Quota Exceeded**\n\nI've reached my current usage limit. Please try again in a few minutes, or consider:\n\n• Taking a short break between requests\n• Rephrasing your question more concisely\n• Using a different agent temporarily\n\nThis is a temporary limitation and should resolve shortly.",
+                conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                session_id=session_id if 'session_id' in locals() else "error"
+            )
+        elif "rate limit" in error_message.lower() or "too many requests" in error_message.lower():
+            return ChatResponse(
+                response="⚠️ **Rate Limit Reached**\n\nI'm processing too many requests right now. Please wait a moment and try again.",
+                conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                session_id=session_id if 'session_id' in locals() else "error"
+            )
+        else:
+            # Generic error handling
+            return ChatResponse(
+                response=f"An unexpected error occurred: {error_message}. Please try again or contact support if the problem persists.",
+                conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                session_id=session_id if 'session_id' in locals() else "error"
+            )
 
 @app.get("/health")
 async def health_check():
