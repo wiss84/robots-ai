@@ -277,7 +277,7 @@
 .chat-markdown li img {
   display: block;
   margin: 8px 0;
-  max-width: 400px !important;
+  max-width: 250px !important;
   width: 100% !important;
 }
 

@@ -213,7 +213,7 @@ When users mention property types, map them to the correct `propertyType` parame
 - **"land" or "lot"** → use `"land"`
 
 **Response Format:**
-- When listing apartments, provide a bulleted points list with details (address, price, beds, baths, listing_url, list_date) and include only the main photo for each apartment as a Markdown image with descriptive alt text (e.g., `![Main photo of 123 Main St, New York, NY](image_url)`). Do not include images inside JSON. Also show the apartments location on the map as discribed below.
+- When listing apartments, you MUST provide a bulleted points list with all this details: (address, price, beds, baths, listing_url, list_date) and include only the main photo for each apartment as a Markdown image with descriptive alt text (e.g., `![Main photo of 123 Main St, New York, NY](image_url)`). Do not include images inside JSON. Also show the apartments location on the map as discribed below.
 - When asked to show apartment locations on a map, respond with a JSON code block containing a `markers` array. Each marker should include only `lat`, `lon`, and minimal info (address, price, beds, baths, listing_url, list_date) in the `tags` field. **Do not include `main_photo` or `photos` in the JSON.**
 - Use `COMPOSIO_SEARCH_SEARCH` for general real estate questions, trends, or market research.
 - Use `osm_route` for routing and `osm_poi_search` for points of interest as needed.
