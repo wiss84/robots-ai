@@ -4,6 +4,16 @@
 
 A sophisticated multi-agent AI system built with React frontend and Python backend, featuring specialized AI agents for various tasks including coding, finance, news, real estate, travel, image generation, and shopping assistance.
 
+## 🌍 Travel Agent Demo
+
+Check out a short video demo of the Travel Agent in action:
+https://youtu.be/dLcbg4htcJ8
+
+## 🏡 Real Estate Agent Demo
+
+Watch a quick demo of the Real Estate Agent in action:
+https://youtu.be/yrBJ0CRmyEU
+
 ## ✨ Features
 
 ### 🤖 Specialized AI Agents
