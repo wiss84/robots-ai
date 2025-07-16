@@ -432,8 +432,8 @@ Or simply include a link to this repository in your acknowledgments.
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/robots-ai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/robots-ai/discussions)
+- **Issues**: [GitHub Issues](https://github.com/wiss84/robots-ai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/wiss84/robots-ai/discussions)
 - **Email**: wissammetawee84@outlook.com
 
 ## 🔄 Version History
