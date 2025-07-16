@@ -10,6 +10,7 @@ import os
 from agents_system_prompts import REALESTATE_AGENT_SYSTEM_PROMPT
 import time
 from osm_tools import osm_route, osm_poi_search
+from RealtyUS_tools import realty_us_search_buy, realty_us_search_rent
 
 router = APIRouter(prefix="/realestate", tags=["realestate"])
 
@@ -30,9 +31,8 @@ real_estate_tools = composio_toolset.get_tools(actions=[
     'COMPOSIO_SEARCH_SEARCH',
 ])
 
-image_search_tools = composio_toolset.get_tools(actions=['COMPOSIO_SEARCH_IMAGE_SEARCH'])
-
-tools = real_estate_tools + image_search_tools + [osm_route, osm_poi_search]
+# Integrate RealtyUS tools
+tools = real_estate_tools + [osm_route, osm_poi_search, realty_us_search_buy, realty_us_search_rent]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

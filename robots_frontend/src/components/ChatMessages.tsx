@@ -2,7 +2,7 @@ import React from 'react';
 import './ChatMessages.css';
 import ReactMarkdown from 'react-markdown';
 import MapMessage from './MapMessage';
-import { FiDownload } from 'react-icons/fi';
+// import { FiDownload } from 'react-icons/fi';
 import { autoWrapJsonResponse } from '../utils/mapDataParser';
 
 interface Message {
@@ -20,12 +20,6 @@ interface ChatMessagesProps {
   userName?: string;
   agentName?: string;
   agentId?: string;
-}
-
-function extractImageUrls(text: string): string[] {
-  // Simple regex for URLs ending with image extensions
-  const urlRegex = /(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|webp|gif))/gi;
-  return text.match(urlRegex) || [];
 }
 
 // Utility to remove JSON code blocks (and optionally other code blocks) from a string
@@ -49,9 +43,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 }) => (
   <div className="chat-messages">
     {messages.map((msg, idx) => {
-      // Extract image URLs from content if present
-      const imageUrls = msg.content ? extractImageUrls(msg.content) : [];
-
       // Auto-wrap unwrapped JSON responses for agent messages
       const processedContent = msg.role === 'agent' ? autoWrapJsonResponse(msg.content) : msg.content;
 
@@ -107,15 +98,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           {/* Render image if type is image and fileUrl is present */}
           {msg.type === 'image' && msg.fileUrl && (
             <div className="chat-image-message">
-              <img src={msg.fileUrl} alt={msg.fileName || 'uploaded'} style={{ maxWidth: 220, maxHeight: 220, borderRadius: 8, margin: '8px 0' }} />
+              <img src={msg.fileUrl} alt={msg.fileName || 'uploaded'} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} />
             </div>
           )}
-          {/* Render images found in agent message content (for non-markdown images) - DISABLED to prevent duplicate rendering */}
-          {/* {msg.role === 'agent' && imageUrls.length > 0 && agentId !== 'shopping' && imageUrls.map((url, i) => (
-            <div className="chat-image-message" key={i}>
-              <img src={url} alt="generated" style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} />
-            </div>
-          ))} */}
+
           {/* Render file if type is file and fileName is present */}
           {msg.type === 'file' && msg.fileName && (
             <div className="chat-file-message">

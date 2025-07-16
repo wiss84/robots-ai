@@ -41,8 +41,7 @@ A sophisticated multi-agent AI system built with React frontend and Python backe
 - **Voice Features**: Text-based communication only
 
 ### Real Estate Search
-- **Rental Listings**: Web search provides links to rental websites but cannot extract individual apartment coordinates
-- **Map Integration**: Limited to building locations via OpenStreetMap, not real-time rental listings
+- **Geographic Coverage**: Real estate active listings search is limited to USA properties only
 
 ## 🚀 Quick Start
 
@@ -127,6 +126,9 @@ AI_Horde_API_KEY='your_ai_horde_api_key'
 # openrouteservice endpoints for maps tools(free with limited refreshable usage per day)
 HeiGIT_API_KEY='your_heigit_api_key'
 
+# RealtyUS API for real estate listings (USA only, free with limited usage)
+RAPIDAPI_KEY='your_rapidapi_key'
+
 # CORS Settings
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
@@ -141,6 +143,7 @@ robots-ai/
 │   ├── requirements.txt        # Python dependencies
 │   ├── agent_*.py             # Individual agent implementations
 │   ├── tools.py               # Shared tools and utilities
+│   ├── RealtyUS_tools.py      # Real estate API tools
 │   ├── file_processor.py      # File processing logic
 │   └── uploaded_files/        # User uploaded files
 ├── robots_frontend/            # React TypeScript frontend
@@ -175,12 +178,14 @@ robots-ai/
 - Trend identification
 
 ### Real Estate Agent
-- Property search assistance
-- Market analysis
-- Investment guidance
-- Location insights
-- Display inline maps
-- Display inline images
+- Property search assistance (USA only)
+- Real-time rental and sale listings via RealtyUS API
+- Market analysis and investment guidance
+- Location insights with interactive maps
+- Points of interest search around properties
+- Property type filtering (apartments, houses, condos, etc.)
+- Display inline maps with property markers
+- Display inline images of properties
 
 ### Travel Agent
 - Trip planning
@@ -420,6 +425,7 @@ Or simply include a link to this repository in your acknowledgments.
 - [Composio](https://composio.dev/) for tool integrations
 - [OpenStreetMap](https://www.openstreetmap.org/) for map data and routing services
 - [HeiGIT](https://heigit.org/) for OpenRouteService API providing routing and geocoding
+- [RealtyUS](https://rapidapi.com/ntd119/api/realty-us) for real estate listings data
 - [AI Horde](https://aihorde.net/) for free AI image generation services
 - [React](https://reactjs.org/) for the frontend framework
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend framework

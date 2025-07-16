@@ -58,6 +58,14 @@
   line-height: 1.7;
   color: inherit;
 }
+
+/* Ensure realestate agent images are large */
+.chat-markdown img {
+  max-width: 400px !important;
+  max-height: 400px !important;
+  border-radius: 8px;
+  margin: 8px 0;
+}
 .agent-image-message {
   display: flex;
   flex-direction: column;
@@ -256,11 +264,25 @@
 .shopping-product-image-markdown {
   display: block;
   margin: 16px auto 8px auto;
-  max-width: 120px;
-  max-height: 120px;
+  max-width: 400px;
+  max-height: 400px;
   border-radius: 8px;
   object-fit: contain;
   background: #fff;
   padding: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Ensure images in markdown lists are large */
+.chat-markdown li img {
+  display: block;
+  margin: 8px 0;
+  max-width: 400px !important;
+  width: 100% !important;
+}
+
+/* Make markdown list containers wide */
+.chat-markdown ul, .chat-markdown ol {
+  width: 100%;
+  max-width: 400px;
 }

@@ -289,6 +289,17 @@ export function parseMapDataFromResponse(response: string): ParsedMapData | null
         })));
       }
       
+      // Parse markers (newly supported)
+      if (data.markers && Array.isArray(data.markers)) {
+        console.log('Found markers data with', data.markers.length, 'points');
+        result.markers.push(...data.markers.map((marker: any) => ({
+          lat: parseFloat(marker.lat),
+          lon: parseFloat(marker.lon),
+          name: marker.name || '',
+          tags: marker.tags || {}
+        })));
+      }
+      
       // Parse bounding box search results
       if (data.features && Array.isArray(data.features)) {
         console.log('Found features data with', data.features.length, 'features');
