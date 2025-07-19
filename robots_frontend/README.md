@@ -146,6 +146,14 @@ using (user_id = auth.uid());
 - **Route Visualization**: Display routes with distance and duration
 - **Map Messages**: Special message component for map data
 
+### Chess Game Integration
+- **Interactive Chessboard**: Real-time chess gameplay with chess.js
+- **Move Validation**: Automatic validation of legal moves
+- **Natural Language Communication**: Chat with the agent about moves and strategy
+- **Game State Tracking**: Automatic detection of checkmate, stalemate, and draw
+- **Response Parsing**: Intelligent parsing of agent responses to extract FEN positions
+- **Visual Feedback**: Clean UI that hides technical FEN data from users
+
 ### User Experience
 - **Authentication**: Supabase-based user authentication
 - **Loading States**: Smooth loading animations and indicators
@@ -165,7 +173,8 @@ robots_frontend/
 │   │   ├── realestate_agent/ # Real estate agent poses (6 poses)
 │   │   ├── travel_agent/     # Travel agent poses (6 poses)
 │   │   ├── image_agent/      # Image agent poses (7 poses incl. painting)
-│   │   └── shopping_agent/   # Shopping agent poses (6 poses)
+│   │   ├── shopping_agent/   # Shopping agent poses (6 poses)
+│   │   └── games_agent/      # Games agent poses (6 poses)
 │   ├── assets/               # Other static assets
 │   │   ├── homepage.webp     # Homepage background
 │   │   ├── left.webp         # Left side image
@@ -188,6 +197,8 @@ robots_frontend/
 │   │   ├── Map.css           # Map styles
 │   │   ├── MapMessage.tsx    # Map message component
 │   │   ├── MapMessage.css    # Map message styles
+│   │   ├── Chessboard.tsx    # Interactive chessboard component
+│   │   ├── Chessboard.css    # Chessboard styles
 │   │   ├── Navbar.tsx        # Navigation component
 │   │   ├── UserAvatar.tsx    # User avatar component
 │   │   ├── ErrorBoundary.tsx # Error boundary component
@@ -209,7 +220,8 @@ robots_frontend/
 │   ├── data/                 # Static data
 │   │   └── AgentDescriptions.ts # Agent descriptions and names
 │   ├── utils/                # Utility functions
-│   │   └── mapDataParser.ts  # Map data parsing utilities
+│   │   ├── mapDataParser.ts  # Map data parsing utilities
+│   │   └── chessParser.ts    # Chess response parsing utilities
 │   ├── assets/               # Static assets
 │   │   └── react.svg         # React logo
 │   ├── App.tsx               # Main app component with routing
@@ -245,6 +257,11 @@ robots_frontend/
 - **Purpose**: Display agent avatar poses with animations
 - **Props**: `agentId`, `pose`
 - **Features**: Dynamic pose changes, agent-specific avatars, pose transitions, fallback images
+
+#### Chessboard.tsx & Chessboard.css
+- **Purpose**: Interactive chessboard for games agent
+- **Props**: `onMove`, `onGameStateChange`, `isAgentTurn`, `position`, `onReset`
+- **Features**: Real-time chess gameplay, move validation, game state tracking, responsive design
 
 #### ChatSidebar.tsx & ChatSidebar.css
 - **Purpose**: Sidebar for conversation management

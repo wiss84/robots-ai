@@ -11,7 +11,10 @@ import ChatInput from '../components/ChatInput';
 import ChatPoses from '../components/ChatPoses';
 import ErrorBoundary from '../components/ErrorBoundary';
 import UsageMonitor from '../components/UsageMonitor';
+import ChessboardComponent from '../components/Chessboard';
 import { agentNames } from '../data/AgentDescriptions';
+import { Chess } from 'chess.js';
+import { parseChessResponse } from '../utils/chessParser';
 
 interface ChatMessage {
   role: string;
@@ -19,6 +22,13 @@ interface ChatMessage {
   content: string;
   fileName?: string;
   fileUrl?: string;
+}
+
+interface GameState {
+  // Removed gameId
+  isActive: boolean;
+  isAgentTurn: boolean;
+  gameStatus: string;
 }
 
 function ChatUI() {
@@ -38,12 +48,238 @@ function ChatUI() {
   const [pose, setPose] = useState<'greeting'|'typing'|'thinking'|'arms_crossing'|'wondering'|'painting'>('greeting');
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  // Chess position from backend
+  const [chessPosition, setChessPosition] = useState<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  // Add missing state hooks for chess integration
+  const [gameId, setGameId] = useState<string | null>(null);
+  const latestFenRef = useRef<string>(chessPosition);
+
+  // Game state for games agent
+  const [gameState, setGameState] = useState<GameState>({
+    // Removed gameId
+    isActive: false,
+    isAgentTurn: false,
+    gameStatus: 'idle'
+  });
+  
+  // Reset chess state helper
+  const resetChessState = () => {
+    setGameState({ isActive: false, isAgentTurn: false, gameStatus: 'idle' });
+    setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  };
+
+  // Check if this is the games agent
+  const isGamesAgent = agentId === 'games';
 
   // Get user name and agent name
   const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
   const firstNameRaw = user?.user_metadata?.first_name || 'User';
   const userName = capitalize(firstNameRaw);
   const agentName = agentId ? agentNames[agentId] || 'Assistant' : 'Assistant';
+
+  // Add a helper to generate a UUID (if not already present)
+  function generateUUID() {
+    // Simple UUID v4 generator
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  // When user types 'play chess' or 'start chess', trigger chess mode in the frontend only
+  const handleChessTrigger = async () => {
+    if (!user || !agentId) return;
+    // Only create a new conversation if one doesn't exist
+    let convId = conversationId;
+    if (!convId) {
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert([{ user_id: user.id, agent_id: agentId, title: 'New Chess Game' }])
+        .select();
+      if (!error && data && data[0]) {
+        convId = data[0].id;
+        setConversationId(convId);
+        setConversations(prev => [data[0], ...prev]);
+      }
+    }
+    // Now use convId for all subsequent chess moves
+    // Generate new gameId and set initial FEN
+    const newGameId = generateUUID();
+    setGameId(newGameId);
+    setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    setGameState({ isActive: true, isAgentTurn: false, gameStatus: 'active' });
+    // Fetch legal moves for initial position
+    const res = await fetch('http://localhost:8000/games/legal_moves', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer test-token' },
+      body: JSON.stringify({ fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' })
+    });
+          if (res.ok) {
+        // Legal moves are fetched but not stored in state since they're not used
+      }
+  };
+
+  // Update handleChessMove to use /games/legal_moves
+  const handleChessMove = async (move: string, newFen?: string) => {
+    if (!agentId || !user || !gameId) return;
+    const fenToUse = newFen || chessPosition;
+    latestFenRef.current = fenToUse;
+    
+    // Debug: Log the FEN being used
+    console.log('handleChessMove - fenToUse:', fenToUse);
+    console.log('handleChessMove - move:', move);
+    
+    setChessPosition(fenToUse);
+    const moveMessage: ChatMessage = { role: 'user', content: move };
+    setMessages(prev => [...prev, moveMessage]);
+    setLoadingMessages(true);
+
+    // Save user move to Supabase messages
+    if (conversationId && user) {
+      await supabase.from('messages').insert([
+        {
+          conversation_id: conversationId,
+          user_id: user.id,
+          agent_id: agentId,
+          role: 'user',
+          content: move
+        }
+      ]);
+    }
+
+    // Fetch legal moves for new FEN and wait for the result
+    let newLegalMoves: string[] = [];
+    let legalMovesFetchFailed = false;
+    let resLegalData: any = {};
+    try {
+      const resLegal = await fetch('http://localhost:8000/games/legal_moves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer test-token' },
+        body: JSON.stringify({ fen: fenToUse })
+      });
+      if (resLegal.ok) {
+        resLegalData = await resLegal.json();
+        if (resLegalData.legal_moves) newLegalMoves = resLegalData.legal_moves;
+      } else {
+        legalMovesFetchFailed = true;
+      }
+    } catch {
+      legalMovesFetchFailed = true;
+    }
+    // Legal moves are fetched but not stored in state since they're not used
+
+    // Debug log for legal moves
+    console.log('Legal moves:', newLegalMoves);
+
+    // If legal moves fetch failed or is empty (and not checkmate/stalemate), show error and do not send to agent
+    if (legalMovesFetchFailed) {
+      console.log('Returning early: legal moves fetch failed');
+      setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not fetch legal moves for this position.' }]);
+      setLoadingMessages(false);
+      return;
+    }
+    if (newLegalMoves.length === 0) {
+      console.log('Returning early: no legal moves available');
+      setMessages(prev => [...prev, { role: 'system', content: 'No legal moves available. The game may be over (checkmate or stalemate).' }]);
+      setLoadingMessages(false);
+      return;
+    }
+
+    // Now send the agent message in natural language
+    const agentMessage = `I just made the move ${move}. The current position is ${fenToUse}. Available legal moves are: ${newLegalMoves.join(', ')}. Please make your move using the chess tool.`;
+
+    // Debug log to verify what is being sent to /chat
+    console.log('About to send to /chat');
+    console.log('Sending to /chat:', agentMessage);
+
+    try {
+      const res = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token'
+        },
+        body: JSON.stringify({
+          agent_id: agentId,
+          message: agentMessage,
+          conversation_id: conversationId,
+          user_name: userName
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.conversation_id) {
+          setConversationId(data.conversation_id);
+          // Ensure conversation is in the sidebar list
+          setConversations(prev => {
+            if (!prev.some(c => c.id === data.conversation_id)) {
+              return [{ id: data.conversation_id, title: 'New Conversation', agent_id: agentId, user_id: user?.id }, ...prev];
+            }
+            return prev;
+          });
+        }
+        // Parse agent response using chess parser utility
+        const chessResult = parseChessResponse(data.response, isGamesAgent);
+        
+        if (chessResult.isChessResponse && chessResult.shouldUpdateBoard && chessResult.fen) {
+          // Debug: Log the FEN from agent response
+          console.log('Agent response FEN:', chessResult.fen);
+          
+          // Update chessboard with extracted FEN
+          setChessPosition(chessResult.fen);
+          setGameState({
+            isActive: true,
+            isAgentTurn: false,
+            gameStatus: 'active'
+          });
+          
+          // Show the cleaned response in chat (without FEN)
+          const displayContent = chessResult.displayText || data.response;
+          setMessages(prev => [...prev, { role: 'agent', content: displayContent }]);
+          
+          // Save agent response to Supabase messages
+          if (conversationId && user) {
+            await supabase.from('messages').insert([
+              {
+                conversation_id: conversationId,
+                user_id: user.id,
+                agent_id: agentId,
+                role: 'agent',
+                content: data.response
+              }
+            ]);
+          }
+        } else {
+          // Show response as normal chat (for non-chess responses or other agents)
+          setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
+          if (conversationId && user) {
+            await supabase.from('messages').insert([
+              {
+                conversation_id: conversationId,
+                user_id: user.id,
+                agent_id: agentId,
+                role: 'agent',
+                content: data.response
+              }
+            ]);
+          }
+        }
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'agent', content: 'Error: Could not reach backend.' }]);
+    }
+    setLoadingMessages(false);
+  };
+
+  // Handle game state change from chessboard
+  const handleGameStateChange = (newGameState: any) => {
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: newGameState.isCheckmate ? 'checkmate' : 
+                  newGameState.isDraw ? 'draw' : 
+                  newGameState.isCheck ? 'check' : 'active'
+    }));
+  };
 
   // Fetch conversations for this user and agent
   useEffect(() => {
@@ -64,13 +300,15 @@ function ChatUI() {
   const handleSelectConversation = async (convId: string) => {
     setConversationId(convId);
     setLoadingMessages(true);
+    // Reset chess state when switching conversations
+    if (isGamesAgent) resetChessState();
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', convId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }); // fetch all, oldest to newest
     if (!error) {
-      setMessages((data || []).map(m => ({ role: m.role, content: m.content })));
+      setMessages((data || []).map(m => ({ role: m.role, content: m.content }))); // full history
     }
     setLoadingMessages(false);
   };
@@ -78,6 +316,8 @@ function ChatUI() {
   // Create a new conversation in Supabase
   const handleNewChat = async () => {
     if (!user || !agentId) return;
+    // Reset chess state for new chat
+    if (isGamesAgent) resetChessState();
     const { data, error } = await supabase
       .from('conversations')
       .insert([{ user_id: user.id, agent_id: agentId, title: 'New Conversation' }])
@@ -123,9 +363,25 @@ function ChatUI() {
   const handleSend = async (fileInfo?: any) => {
     if (!input.trim() && !fileInfo) return;
     if (!agentId || !user) return;
+    
     const userMessage = input.trim();
     setInput('');
     setLoadingMessages(true);
+    
+    // Handle games agent special logic
+    if (isGamesAgent) {
+      const lowerMsg = userMessage.trim().toLowerCase();
+      if (
+        lowerMsg.includes('play chess') ||
+        lowerMsg.includes('start chess')
+      ) {
+        await handleChessTrigger();
+        setMessages(prev => [...prev, { role: 'system', content: 'Chess game started! You are white. Make your move.' }]);
+        setLoadingMessages(false);
+        return;
+      }
+    }
+    
     let convId = conversationId;
     if (!convId) {
       const { data, error } = await supabase
@@ -156,13 +412,6 @@ function ChatUI() {
     setMessages(prev => [...prev, chatMessage]);
     
     try {
-      console.log('Sending request to backend:', {
-        agent_id: agentId,
-        message: agentMessage,
-        conversation_id: convId,
-        user_name: userName
-      });
-
       const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
@@ -195,6 +444,11 @@ function ChatUI() {
       const data = await res.json();
       console.log('Response data:', data);
       
+      // Always update conversationId if present in response
+      if (data.conversation_id) {
+        setConversationId(data.conversation_id);
+      }
+
       // Check for API quota errors in the response
       if (data.response && (
         data.response.includes('API Quota Exceeded') || 
@@ -222,18 +476,27 @@ function ChatUI() {
         setLoadingMessages(false);
         return;
       }
-      
-      // Save agent message to Supabase
-      await supabase.from('messages').insert([
-        {
-          conversation_id: convId,
-          user_id: user.id,
-          agent_id: agentId,
-          role: 'agent',
-          content: data.response
-        }
-      ]);
-      setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
+
+      // --- Chess agent response handling ---
+      let parsed = null;
+      try {
+        parsed = JSON.parse(data.response);
+      } catch (e) {
+        // Not JSON, treat as plain chat
+      }
+      if (isGamesAgent && parsed && parsed.fen) {
+        // For chess responses, show the full JSON response in the chat
+        setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
+        setChessPosition(parsed.fen);
+        setGameState({
+          // Removed gameId
+          isActive: true,
+          isAgentTurn: false,
+          gameStatus: parsed.status || 'active'
+        });
+      } else {
+        setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
+      }
     } catch (err: any) {
       console.error('Chat error:', err);
       
@@ -269,7 +532,9 @@ function ChatUI() {
       }
     }
     setLoadingMessages(false);
-    if (messages.length === 0 && convId) {
+    // Rename conversation if it's the first user message (for chess games, this might be the first move)
+    const isFirstUserMessage = messages.filter(m => m.role === 'user').length === 0;
+    if (isFirstUserMessage && convId) {
       await supabase.from('conversations').update({ title: userMessage.slice(0, 30) }).eq('id', convId);
       setConversations(convs => convs.map(c => c.id === convId ? { ...c, title: userMessage.slice(0, 30) } : c));
     }
@@ -325,6 +590,13 @@ function ChatUI() {
       }
     }
   }, [messages]);
+
+  // Debug game state for games agent
+  useEffect(() => {
+    if (isGamesAgent) {
+      console.log('Game state updated:', gameState);
+    }
+  }, [gameState, isGamesAgent]);
 
   if (loading) {
     return (
@@ -408,15 +680,43 @@ function ChatUI() {
           )}
           {!showGreeting && (
             <>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <ChatMessages
-                  messages={messages}
-                  loadingMessages={loadingMessages}
-                  messagesEndRef={messagesEndRef}
-                  userName={userName}
-                  agentName={agentName}
-                  agentId={agentId}
-                />
+              <div style={{ position: 'relative', width: '100%', display: 'flex', gap: '2rem' }}>
+                {/* Chat Messages */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <ChatMessages
+                    messages={messages}
+                    loadingMessages={loadingMessages}
+                    messagesEndRef={messagesEndRef}
+                    userName={userName}
+                    agentName={agentName}
+                    agentId={agentId}
+                  />
+                </div>
+                
+                {/* Chessboard for Games Agent - Only show when game is active and chessPosition is set */}
+                {isGamesAgent && gameState.isActive && chessPosition && (
+                  <div style={{ 
+                    flex: '0 0 auto', 
+                    width: '450px',
+                    position: 'sticky',
+                    top: '2rem',
+                    height: 'fit-content'
+                  }}>
+                    <ChessboardComponent
+                      onMove={(move) => {
+                        // Use Chess from chess.js to get the new FEN after the move
+                        const chess = new Chess(chessPosition);
+                        chess.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move.length > 4 ? move[4] : undefined });
+                        const newFen = chess.fen();
+                        handleChessMove(move, newFen);
+                      }}
+                      onGameStateChange={handleGameStateChange}
+                      isAgentTurn={gameState.isAgentTurn}
+                      position={chessPosition}
+                      onReset={resetChessState}
+                    />
+                  </div>
+                )}
               </div>
               <ChatInput 
                 input={input}

@@ -62,6 +62,13 @@ const agents: Agent[] = [
     description: agentDescriptions.shopping,
     avatar: '/avatars/shopping_agent/shopping.webp',
     keywords: ['shopping', 'products', 'buy', 'purchase', 'deals', 'reviews', 'compare prices']
+  },
+  {
+    id: 'games',
+    name: 'Game Buddy',
+    description: agentDescriptions.games,
+    avatar: '/avatars/games_agent/games.webp',
+    keywords: ['chess', 'games', 'board games', 'play', 'strategy', 'puzzle']
   }
 ];
 

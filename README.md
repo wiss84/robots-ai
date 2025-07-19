@@ -14,6 +14,11 @@ https://youtu.be/dLcbg4htcJ8
 Watch a quick demo of the Real Estate Agent in action:
 https://youtu.be/yrBJ0CRmyEU
 
+## 🎮 Games Agent Demo
+
+Watch a quick demo of the Games Agent in action:
+https://youtu.be/w6gwGUEF7i0
+
 ## ✨ Features
 
 ### 🤖 Specialized AI Agents
@@ -24,6 +29,7 @@ https://youtu.be/yrBJ0CRmyEU
 - **Travel Agent**: Trip planning, recommendations, and travel assistance
 - **Image Generator**: AI-powered image creation and editing
 - **Shopping Agent**: Product search, price comparison, and shopping assistance
+- **Games Agent**: Interactive chess gameplay with strategy and analysis
 
 ### 🎨 Modern UI/UX
 - **Responsive Design**: Works seamlessly on desktop
@@ -37,6 +43,7 @@ https://youtu.be/yrBJ0CRmyEU
 - **File Processing**: OCR, PDF parsing, document analysis
 - **Memory System**: Conversation history and context retention
 - **Real-time Chat**: Interactive chat interface with typing indicators
+- **Interactive Games**: Real-time chess gameplay with move validation
 - **Service Worker**: Cached assets for faster loading
 
 ## ⚠️ Current Limitations
@@ -216,6 +223,14 @@ robots-ai/
 - Price comparison
 - Shopping recommendations
 - Deal hunting
+
+### Games Agent
+- Interactive chess gameplay with real-time board updates
+- Move validation and legal move checking
+- Strategy explanations and move analysis
+- Natural language chess communication
+- Game state tracking (checkmate, stalemate, draw detection)
+
 
 ## 🛠️ Development
 

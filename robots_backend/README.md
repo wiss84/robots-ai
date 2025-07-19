@@ -24,6 +24,7 @@ GOOGLE_API_KEY=your_google_api_key
 COMPOSIO_API_KEY=your_composio_api_key
 AI_Horde_API_KEY=your_ai_horde_api_key
 HeiGIT_API_KEY=your_openrouteservice_api_key
+
 ```
 
 ### Installation
@@ -73,6 +74,11 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
 - **Tools**: Shopping APIs, product databases via Composio
 - **Use Case**: Shopping assistance and deal hunting
 
+### 8. Games Agent (`/games`)
+- **Capabilities**: Interactive chess gameplay, move validation, strategy analysis
+- **Tools**: Chess engine, legal move validation, game state tracking
+- **Use Case**: Chess gameplay and strategy assistance
+
 ## 🔌 API Endpoints
 
 ### Main Chat Endpoint
@@ -109,6 +115,13 @@ Each agent has its own endpoint:
 - `POST /travel/ask`
 - `POST /image/ask`
 - `POST /shopping/ask`
+- `POST /games/ask`
+
+### Games Agent Endpoints
+- `POST /games/legal_moves` - Get legal moves for a chess position
+- `POST /games/ask` - Main games agent chat endpoint
+
+
 
 ### Health Check
 ```http
@@ -134,12 +147,14 @@ robots_backend/
 ├── agent_travel.py           # Travel agent implementation
 ├── agent_image_generator.py  # Image generation agent
 ├── agent_shopping.py         # Shopping agent implementation
+├── agent_games.py            # Games agent implementation
 ├── agents_system_prompts.py  # System prompts for all agents
 ├── tools.py                  # Shared tools (image generation)
 ├── file_processor.py         # File processing logic
 ├── file_upload.py           # File upload handling
 ├── ors_tools.py             # OpenRouteService tools
 ├── osm_tools.py             # OpenStreetMap tools
+├── chess_tool.py            # Chess game tools and move validation
 ├── uploaded_files/          # User uploaded files directory
 └── README_FILE_PROCESSING.md # File processing documentation
 ```

@@ -69,6 +69,17 @@ Hello there! 🛍️ I'm your smart shopping companion, here to help you find th
 - 🎯 Recommend products based on your needs and preferences
 
 Just press Proceed, and let's find the perfect products for you! 🛒
+`,
+
+  games: `
+Hello there! 🎮 I'm your friendly board game companion, ready to challenge you to exciting games and provide hours of entertainment. Here's what I can do:
+
+- ♟️ Play chess with you with a beautiful interactive board
+- 🎯 Provide helpful hints and explain strategies during gameplay
+- 💬 Chat naturally about the game, moves, and strategies
+- 🏆 Keep track of game history and celebrate victories together
+
+Just press Proceed, and let's start playing! I'm ready for a good game of chess! ♟️
 `
 };
 
@@ -80,5 +91,6 @@ export const agentNames: { [key: string]: string } = {
   image: 'Image Generator',
   image_agent: 'Image Generator',
   shopping: 'Shopping Assistant',
-  coding: 'Coding Assistant'
+  coding: 'Coding Assistant',
+  games: 'Games Assistant'
 };

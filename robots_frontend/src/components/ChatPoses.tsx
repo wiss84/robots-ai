@@ -58,6 +58,14 @@ const agentPoses = {
     wondering: '/avatars/shopping_agent/wondering_pose.webp',
     standing: '/avatars/shopping_agent/standing_pose.webp',
   },
+  games: {
+    greeting: '/avatars/games_agent/greeting_pose.webp',
+    typing: '/avatars/games_agent/typing_pose.webp',
+    thinking: '/avatars/games_agent/thinking_pose.webp',
+    arms_crossing: '/avatars/games_agent/arms_crossing_pose.webp',
+    wondering: '/avatars/games_agent/wondering_pose.webp',
+    standing: '/avatars/games_agent/standing_pose.webp',
+  },
 };
 
 const ChatPoses: React.FC<ChatPosesProps> = ({ agentId, pose }) => {

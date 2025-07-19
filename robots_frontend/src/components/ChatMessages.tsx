@@ -89,8 +89,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
               >
                 {contentWithoutJson}
               </ReactMarkdown>
-              {/* Render map if agent response contains map data */}
-              <MapMessage message={processedContent} />
+              {/* Only render map for travel and realestate agents */}
+              {(agentId === 'travel' || agentId === 'realestate') && (
+                <MapMessage message={processedContent} />
+              )}
             </div>
           ) : (
             <span>{processedContent}</span>

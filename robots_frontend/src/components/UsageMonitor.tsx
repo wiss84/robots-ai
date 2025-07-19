@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 
 interface UsageStats {
   requestsToday: number;
-  requestsThisHour: number;
+  requestsThisMinute: number;
   lastRequestTime: string;
 }
 
 const UsageMonitor: React.FC = () => {
   const [usageStats, setUsageStats] = useState<UsageStats>({
     requestsToday: 0,
-    requestsThisHour: 0,
+    requestsThisMinute: 0,
     lastRequestTime: ''
   });
   const [showWarning, setShowWarning] = useState(false);
@@ -22,8 +22,8 @@ const UsageMonitor: React.FC = () => {
       setUsageStats(stats);
     }
 
-    // Check if we should show warning
-    if (usageStats.requestsThisHour > 10) {
+    // Check if we should show warning (15 requests per minute)
+    if (usageStats.requestsThisMinute > 12) {
       setShowWarning(true);
     }
   }, []);
@@ -31,12 +31,11 @@ const UsageMonitor: React.FC = () => {
   const updateUsage = () => {
     const now = new Date();
     const today = now.toDateString();
-    const currentHour = now.getHours();
     
     const savedStats = localStorage.getItem('usageStats');
     let stats: UsageStats = savedStats ? JSON.parse(savedStats) : {
       requestsToday: 0,
-      requestsThisHour: 0,
+      requestsThisMinute: 0,
       lastRequestTime: ''
     };
 
@@ -45,25 +44,26 @@ const UsageMonitor: React.FC = () => {
       stats.requestsToday = 0;
     }
 
-    // Reset hourly count if it's a new hour
+    // Reset minute count if it's a new minute
     if (stats.lastRequestTime) {
-      const lastHour = new Date(stats.lastRequestTime).getHours();
-      if (lastHour !== currentHour) {
-        stats.requestsThisHour = 0;
+      const lastMinute = new Date(stats.lastRequestTime).getMinutes();
+      const currentMinute = now.getMinutes();
+      if (lastMinute !== currentMinute) {
+        stats.requestsThisMinute = 0;
       }
     }
 
     // Increment counters
     stats.requestsToday += 1;
-    stats.requestsThisHour += 1;
+    stats.requestsThisMinute += 1;
     stats.lastRequestTime = now.toISOString();
 
     // Save to localStorage
     localStorage.setItem('usageStats', JSON.stringify(stats));
     setUsageStats(stats);
 
-    // Show warning if approaching limits
-    if (stats.requestsThisHour > 8) {
+    // Show warning if approaching limits (15 requests per minute)
+    if (stats.requestsThisMinute > 12) {
       setShowWarning(true);
     }
   };
@@ -97,8 +97,8 @@ const UsageMonitor: React.FC = () => {
         ⚠️ Usage Warning
       </h4>
       <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#856404' }}>
-        You've made {usageStats.requestsThisHour} requests this hour. 
-        Consider taking a short break to avoid hitting API limits.
+        You've made {usageStats.requestsThisMinute} requests this minute. 
+        Consider taking a short break to avoid hitting API limits (15 requests/minute).
       </p>
       <button
         onClick={() => setShowWarning(false)}

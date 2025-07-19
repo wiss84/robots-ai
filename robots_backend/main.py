@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 import os
 from dotenv import load_dotenv
 import uvicorn
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import datetime
 import time
 from file_upload import router as file_upload_router
@@ -63,6 +63,7 @@ class ChatMessage(BaseModel):
     conversation_id: Optional[str] = None  # Add conversation_id field
     file_content: Optional[str] = None  # Add file content field
     user_name: Optional[str] = None  # Add user name field
+    messages: Optional[List[Dict[str, str]]] = None # Add messages field
 
 class ChatResponse(BaseModel):
     response: str
@@ -84,7 +85,7 @@ async def root():
         "message": "LangGraph Agents Backend", 
         "version": "1.0.0",
         "status": "running",
-        "available_agents": ["travel", "realestate", "news", "finance", "shopping", "image", "coding"]
+        "available_agents": ["travel", "realestate", "news", "finance", "shopping", "image", "coding", "games"]
     }
 
 from agent_coding import router as coding_router
@@ -101,6 +102,8 @@ from agent_realestate import graph as realestate_graph
 from agent_travel import graph as travel_graph
 from agent_image_generator import graph as image_generator_graph
 from agent_shopping import graph as shopping_graph
+from agent_games import router as games_router
+from agent_games import graph as games_graph
 
 app.include_router(coding_router)
 app.include_router(finance_router)
@@ -109,6 +112,7 @@ app.include_router(realestate_router)
 app.include_router(travel_router)
 app.include_router(image_generator_router)
 app.include_router(shopping_router)
+app.include_router(games_router)
 app.include_router(file_upload_router)
 
 def build_multimodal_message(text, image_base64, mime_type='image/webp'):
@@ -124,6 +128,8 @@ async def chat_with_agent(
     chat_request: ChatMessage,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
+    print("=== Received chat message ===")
+    print(chat_request.message)
     try:
         print(f"=== CHAT REQUEST RECEIVED ===")
         print(f"Agent ID: {chat_request.agent_id}")
@@ -147,6 +153,7 @@ async def chat_with_agent(
             "travel": travel_graph,
             "image": image_generator_graph,
             "shopping": shopping_graph,
+            "games": games_graph,
         }
         
         if agent_id not in agent_graphs:
@@ -215,20 +222,21 @@ async def chat_with_agent(
             from langchain_core.messages import HumanMessage
             human_message = HumanMessage(content=message)
         
+
         # Get the appropriate graph
         graph = agent_graphs[agent_id]
-        
-        # Create initial state
+
+        # Create initial state (revert to single message)
         state = {"messages": [human_message]}
-        
+
         # Configure the graph with conversation history
         config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 50}
-        
+
         print(f"Invoking graph for agent {agent_id}...")
-        
+
         # Invoke the graph
         result = graph.invoke(state, config=config)
-        
+
         print(f"Graph invocation completed, processing result...")
         
         # Extract the response
@@ -240,6 +248,8 @@ async def chat_with_agent(
                 response_content = last_message.content
             else:
                 response_content = str(last_message)
+            
+
             
             # Check if response is empty and provide fallback
             if not response_content or response_content.strip() == "":
@@ -296,4 +306,4 @@ async def chat_with_agent(
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "timestamp": "2024-01-01T00:00:00Z"}
+    return {"status": "healthy", "timestamp": "2025-01-01T00:00:00Z"}
