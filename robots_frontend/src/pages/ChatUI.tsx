@@ -63,9 +63,30 @@ function ChatUI() {
   });
   
   // Reset chess state helper
-  const resetChessState = () => {
-    setGameState({ isActive: false, isAgentTurn: false, gameStatus: 'idle' });
+  const resetChessState = async () => {
+    setGameState({ isActive: true, isAgentTurn: false, gameStatus: 'active' });
     setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    // Inform the agent if a conversation is active
+    if (isGamesAgent && agentId && user && conversationId) {
+      const startNewGameMsg = "User decided to start a new game.";
+      try {
+        await fetch('http://localhost:8000/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer test-token'
+          },
+          body: JSON.stringify({
+            agent_id: agentId,
+            message: startNewGameMsg,
+            conversation_id: conversationId,
+            user_name: userName
+          })
+        });
+      } catch (err) {
+        setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of new chess game.' }]);
+      }
+    }
   };
 
   // Check if this is the games agent
@@ -281,6 +302,31 @@ function ChatUI() {
     }));
   };
 
+  // Handler to close the chess game
+  const handleCloseChessGame = async () => {
+    setGameState({ ...gameState, isActive: false });
+    if (isGamesAgent && agentId && user && conversationId) {
+      const endGameMsg = "User decided to end the current chess game";
+      try {
+        await fetch('http://localhost:8000/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer test-token'
+          },
+          body: JSON.stringify({
+            agent_id: agentId,
+            message: endGameMsg,
+            conversation_id: conversationId,
+            user_name: userName
+          })
+        });
+      } catch (err) {
+        setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of chess game closure.' }]);
+      }
+    }
+  };
+
   // Fetch conversations for this user and agent
   useEffect(() => {
     if (!user || !agentId) return;
@@ -390,8 +436,30 @@ function ChatUI() {
         lowerMsg.includes('play chess') ||
         lowerMsg.includes('start chess')
       ) {
+        // Add the user's message to the chat history
+        setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
         await handleChessTrigger();
         setMessages(prev => [...prev, { role: 'system', content: 'Chess game started! You are white. Make your move.' }]);
+        // Send a message to the agent to inform it that a new chess game has started
+        const convIdToUse = conversationId;
+        const startGameMessage = "User started a new chess game.";
+        try {
+          await fetch('http://localhost:8000/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer test-token'
+            },
+            body: JSON.stringify({
+              agent_id: agentId,
+              message: startGameMessage,
+              conversation_id: convIdToUse,
+              user_name: userName
+            })
+          });
+        } catch (err) {
+          setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of new chess game.' }]);
+        }
         setLoadingMessages(false);
         return;
       }
@@ -743,6 +811,7 @@ function ChatUI() {
                       isAgentTurn={gameState.isAgentTurn}
                       position={chessPosition}
                       onReset={resetChessState}
+                      onClose={handleCloseChessGame}
                     />
                   </div>
                 )}

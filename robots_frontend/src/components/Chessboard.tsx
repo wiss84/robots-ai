@@ -10,6 +10,7 @@ interface ChessboardProps {
   isAgentTurn?: boolean;
   position?: string; // FEN position from backend
   onReset?: () => void; // Add onReset callback
+  onClose?: () => void; // Add onClose callback
 }
 
 const ChessboardComponent: React.FC<ChessboardProps> = ({
@@ -18,7 +19,8 @@ const ChessboardComponent: React.FC<ChessboardProps> = ({
   onGameStateChange,
   isAgentTurn = false,
   position,
-  onReset // Add onReset prop
+  onReset, // Add onReset prop
+  onClose // Add onClose prop
 }) => {
   const [game, setGame] = useState(new Chess());
   
@@ -146,6 +148,13 @@ const ChessboardComponent: React.FC<ChessboardProps> = ({
             className="reset-button"
           >
             New Game
+          </button>
+          <button
+            onClick={onClose}
+            className="close-button"
+            style={{ marginLeft: '0.5rem', background: '#e53935' }}
+          >
+            Close Game
           </button>
         </div>
       </div>
