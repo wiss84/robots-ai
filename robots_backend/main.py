@@ -64,6 +64,7 @@ class ChatMessage(BaseModel):
     file_content: Optional[str] = None  # Add file content field
     user_name: Optional[str] = None  # Add user name field
     messages: Optional[List[Dict[str, str]]] = None # Add messages field
+    conversation_summary: Optional[str] = None  # Add conversation summary field
 
 class ChatResponse(BaseModel):
     response: str
@@ -104,6 +105,7 @@ from agent_image_generator import graph as image_generator_graph
 from agent_shopping import graph as shopping_graph
 from agent_games import router as games_router
 from agent_games import graph as games_graph
+from summarize import router as summarize_router
 
 app.include_router(coding_router)
 app.include_router(finance_router)
@@ -114,6 +116,7 @@ app.include_router(image_generator_router)
 app.include_router(shopping_router)
 app.include_router(games_router)
 app.include_router(file_upload_router)
+app.include_router(summarize_router)
 
 def build_multimodal_message(text, image_base64, mime_type='image/webp'):
     """Build a multimodal message for Gemini: text + image."""
@@ -198,6 +201,13 @@ async def chat_with_agent(
         # Add file content to message if provided
         if hasattr(chat_request, 'file_content') and chat_request.file_content:
             message = f"{message}\n\nFile Content:\n{chat_request.file_content}"
+        
+        # Load conversation summary into agent memory if provided
+        if hasattr(chat_request, 'conversation_summary') and chat_request.conversation_summary:
+            print(f"Loading conversation summary into agent memory: {chat_request.conversation_summary[:100]}...")
+            # Add summary as context to the message
+            summary_context = f"[Previous Conversation Summary: {chat_request.conversation_summary}]"
+            message = f"{summary_context}\n\n{message}"
         
         print(f"Final message to agent: {message[:200]}...")
         

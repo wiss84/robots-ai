@@ -123,6 +123,20 @@ Each agent has its own endpoint:
 
 
 
+### Conversation Summarization
+```http
+POST /summarize
+Content-Type: application/json
+Authorization: Bearer your_token
+
+{
+  "messages": [
+    {"role": "user", "content": "Hello"},
+    {"role": "agent", "content": "Hi there!"}
+  ]
+}
+```
+
 ### Health Check
 ```http
 GET /health
@@ -155,11 +169,19 @@ robots_backend/
 ├── ors_tools.py             # OpenRouteService tools
 ├── osm_tools.py             # OpenStreetMap tools
 ├── chess_tool.py            # Chess game tools and move validation
+├── summarize.py             # Conversation summarization endpoint
 ├── uploaded_files/          # User uploaded files directory
 └── README_FILE_PROCESSING.md # File processing documentation
 ```
 
 ## 🛠️ Key Features
+
+### Conversation Memory & Context Management
+- **Automatic Summarization**: When users open old conversations, the system automatically summarizes the conversation history using Gemini 2.0 Flash
+- **Context Loading**: The summarized context is automatically loaded into the agent's memory when the user sends their first message
+- **Efficient Memory Usage**: Instead of loading entire conversation history, only the essential context is provided to agents
+- **One-time Loading**: Context is loaded only once per conversation session to avoid redundancy
+- **Independent Rate Limits**: Summarization uses `gemini-2.0-flash` with separate rate limits from main agents
 
 ### Multimodal Support
 - **Image Processing**: Agents can process images sent via URLs
@@ -182,6 +204,9 @@ robots_backend/
 - **Session Persistence**: LangGraph memory for conversation history
 - **Thread Management**: Unique conversation IDs for each chat session
 - **State Management**: Proper state handling across agent interactions
+- **Conversation Summarization**: Automatic summarization of conversation history using Gemini 2.0 Flash
+- **Context Loading**: Automatic loading of conversation context when old conversations are reopened
+- **Memory Management**: Efficient context loading without overloading agent memory
 
 ## 🔧 Configuration
 

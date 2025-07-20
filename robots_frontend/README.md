@@ -154,12 +154,21 @@ using (user_id = auth.uid());
 - **Response Parsing**: Intelligent parsing of agent responses to extract FEN positions
 - **Visual Feedback**: Clean UI that hides technical FEN data from users
 
+### Conversation Memory & Context Management
+- **Automatic Context Loading**: When users open old conversations, the system automatically loads conversation context
+- **Intelligent Summarization**: Conversation history is summarized using backend AI to provide essential context
+- **Efficient Memory Usage**: Only relevant context is loaded, avoiding memory overload
+- **Seamless Experience**: Users can continue conversations naturally without losing context
+- **One-time Loading**: Context is loaded once per conversation session for optimal performance
+
 ### User Experience
 - **Authentication**: Supabase-based user authentication
 - **Loading States**: Smooth loading animations and indicators
 - **Error Boundaries**: Graceful error handling with fallbacks
 - **Usage Monitoring**: Track API usage and quotas
 - **Conversation Management**: Create, rename, and delete conversations
+- **Conversation Memory**: Automatic loading of conversation context when reopening old conversations
+- **Context Summarization**: Intelligent summarization of conversation history for efficient memory usage
 
 ## 📁 Project Structure
 
@@ -199,6 +208,11 @@ robots_frontend/
 │   │   ├── MapMessage.css    # Map message styles
 │   │   ├── Chessboard.tsx    # Interactive chessboard component
 │   │   ├── Chessboard.css    # Chessboard styles
+│   │   ├── ErrorBoundary.tsx # Error boundary component
+│   │   ├── Navbar.tsx        # Navigation component
+│   │   ├── UsageMonitor.tsx  # Usage monitoring component
+│   │   └── UserAvatar.tsx    # User avatar component
+│   │   ├── Chessboard.css    # Chessboard styles
 │   │   ├── Navbar.tsx        # Navigation component
 │   │   ├── UserAvatar.tsx    # User avatar component
 │   │   ├── ErrorBoundary.tsx # Error boundary component
@@ -221,7 +235,8 @@ robots_frontend/
 │   │   └── AgentDescriptions.ts # Agent descriptions and names
 │   ├── utils/                # Utility functions
 │   │   ├── mapDataParser.ts  # Map data parsing utilities
-│   │   └── chessParser.ts    # Chess response parsing utilities
+│   │   ├── chessParser.ts    # Chess response parsing utilities
+│   │   └── conversationSummarizer.ts # Conversation summarization utility
 │   ├── assets/               # Static assets
 │   │   └── react.svg         # React logo
 │   ├── App.tsx               # Main app component with routing
@@ -335,6 +350,10 @@ robots_frontend/
 #### mapDataParser.ts
 - **Purpose**: Map data parsing utilities for backend integration
 - **Features**: Location data processing, map coordinate handling, route data parsing
+
+#### conversationSummarizer.ts
+- **Purpose**: Conversation summarization utility for context management
+- **Features**: Backend summarization calls, context loading, error handling
 
 ## 🛠️ Development Workflow
 

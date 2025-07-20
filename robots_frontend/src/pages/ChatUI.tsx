@@ -15,6 +15,7 @@ import ChessboardComponent from '../components/Chessboard';
 import { agentNames } from '../data/AgentDescriptions';
 import { Chess } from 'chess.js';
 import { parseChessResponse } from '../utils/chessParser';
+import { summarizeConversation } from '../utils/conversationSummarizer';
 
 interface ChatMessage {
   role: string;
@@ -25,7 +26,6 @@ interface ChatMessage {
 }
 
 interface GameState {
-  // Removed gameId
   isActive: boolean;
   isAgentTurn: boolean;
   gameStatus: string;
@@ -308,7 +308,22 @@ function ChatUI() {
       .eq('conversation_id', convId)
       .order('created_at', { ascending: true }); // fetch all, oldest to newest
     if (!error) {
-      setMessages((data || []).map(m => ({ role: m.role, content: m.content }))); // full history
+      const messages = (data || []).map(m => ({ role: m.role, content: m.content })); // full history
+      setMessages(messages);
+      
+      // Summarize conversation history if there are messages
+      if (messages.length > 0) {
+        try {
+          const summary = await summarizeConversation(messages);
+          console.log('Conversation summarized:', summary);
+          
+          // Store summary for use with first message
+          sessionStorage.setItem(`conversation_summary_${convId}`, summary);
+          console.log('Conversation summary stored for first message');
+        } catch (error) {
+          console.error('Error processing conversation:', error);
+        }
+      }
     }
     setLoadingMessages(false);
   };
@@ -412,19 +427,33 @@ function ChatUI() {
     setMessages(prev => [...prev, chatMessage]);
     
     try {
+      // Check if we have a conversation summary to send with first message
+      const summaryKey = `conversation_summary_${convId}`;
+      const conversationSummary = sessionStorage.getItem(summaryKey);
+      
+      const requestBody: any = { 
+        agent_id: agentId, 
+        message: agentMessage,
+        conversation_id: convId,
+        file_content: fileContent,
+        user_name: userName 
+      };
+      
+      // Add summary if available (only for first message in loaded conversation)
+      if (conversationSummary) {
+        requestBody.conversation_summary = conversationSummary;
+        // Remove from sessionStorage after sending (so it's only sent once)
+        sessionStorage.removeItem(summaryKey);
+        console.log('Sending conversation summary with first message:', conversationSummary.substring(0, 100) + '...');
+      }
+      
       const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer test-token'
         },
-        body: JSON.stringify({ 
-          agent_id: agentId, 
-          message: agentMessage,
-          conversation_id: convId,
-          file_content: fileContent,
-          user_name: userName // Pass user name to backend
-        })
+        body: JSON.stringify(requestBody)
       });
       
       console.log('Response status:', res.status);
