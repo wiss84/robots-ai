@@ -100,7 +100,8 @@ https://youtu.be/w6gwGUEF7i0
    # Edit .env with your API keys
    ```
 
-6. **Set up Supabase database** (see [Frontend README](robots_frontend/README.md#supabase-database-setup) for detailed instructions)
+6. **Set up Supabase database**
+> See [How to Get Your Free Supabase Project URL and Anon Key (frontend README)](robots_frontend/README.md#-how-to-get-your-free-supabase-project-url-and-anon-key)
    - Create tables for conversations and messages
    - Enable Row Level Security (RLS)
    - Set up access policies
@@ -123,6 +124,9 @@ https://youtu.be/w6gwGUEF7i0
 ## 🔑 Environment Variables
 
 Create a `.env` file in the `robots_backend` directory:
+
+> **Need help finding and registering for free API keys?**
+> See [How to Get Free API Keys (backend README)](robots_backend/README.md#-how-to-get-free-api-keys)
 
 ```env
 # Google AI API (free with limited refreshable usage per day)

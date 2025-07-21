@@ -48,18 +48,24 @@ Modern React TypeScript frontend for the Robots-AI multi-agent platform. Feature
 
 Create a `.env` file in the `robots_frontend` directory:
 
+## 🔑 How to Get Your Free Supabase Project URL and Anon Key
+
+You will need to add the following variables to your frontend `.env` file:
+
 ```env
-# Supabase Configuration (for authentication)
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Optional: Google Analytics
-VITE_GA_TRACKING_ID=your_google_analytics_id
-
-# Optional: Feature Flags
-VITE_ENABLE_ANALYTICS=true
-VITE_ENABLE_ERROR_TRACKING=false
 ```
+
+**How to get them:**
+1. Go to [Supabase](https://supabase.com/) and sign up for a free account.
+2. After logging in, click **“New Project”** and follow the prompts to create a project.
+3. Once your project is created, go to your project dashboard.
+4. In the left sidebar, click **“Project Settings”** → **“API”**.
+5. Copy the **Project URL** and **anon public key** (found under “Project API keys”).
+6. Paste them into your `.env` file as shown above.
+
+> [Official Supabase Documentation: Getting Started](https://supabase.com/docs/guides/getting-started)
 
 ## 🗄️ Supabase Database Setup
 

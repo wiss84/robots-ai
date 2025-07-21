@@ -27,6 +27,36 @@ HeiGIT_API_KEY=your_openrouteservice_api_key
 
 ```
 
+## 🌐 How to Get Free API Keys
+
+To use this backend, you must obtain free API keys for the following services and add them to your `.env` file. Use the official links below to register and generate your keys:
+
+| Variable              | Service/Usage                                 | Get Your Free API Key Here                                                                 |
+|-----------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------|
+| `GOOGLE_API_KEY`      | Google Gemini (free tier models)              | [Gemini Developer API](https://ai.google.dev/gemini-api)                                   |
+| `COMPOSIO_API_KEY`    | Composio Integrations                         | [Composio Dashboard](https://app.composio.dev/dashboard)                                   |
+| `AI_Horde_API_KEY`    | AI Horde Image Generation                     | [AI Horde Account](https://stablehorde.net/register)                                       |
+| `HeiGIT_API_KEY`      | OpenRouteService (HeiGIT)                     | [OpenRouteService Signup](https://openrouteservice.org/sign-up/)                           |
+| `RAPIDAPI_KEY`        | RealtyUS & other APIs via RapidAPI Marketplace| [RapidAPI RealtyUS Example](https://rapidapi.com/ntd119/api/realty-us/playground/apiendpoint_fe604a38-813b-47e0-a84f-2c6f98f6372c) |
+| `LANGCHAIN_API_KEY`   | LangSmith (LangChain Tracing & Experiment Tracking) | [LangSmith Dashboard](https://smith.langchain.com/) (Get your key from Account > API Keys) |
+
+**Example `.env` file:**
+```env
+GOOGLE_API_KEY=your_google_api_key
+COMPOSIO_API_KEY=your_composio_api_key
+AI_Horde_API_KEY=your_ai_horde_api_key
+HeiGIT_API_KEY=your_openrouteservice_api_key
+RAPIDAPI_KEY=your_rapidapi_key
+LANGCHAIN_API_KEY=your_langsmith_api_key
+```
+
+> After registering at the above links, copy your API keys into your `.env` file as shown above.
+
+**Tips:**
+- Some services may require you to enable billing, but all offer a free tier or trial.
+- RapidAPI provides a single key for all APIs you subscribe to on their platform.
+- LangSmith API key is needed for experiment tracking and tracing in LangChain.
+
 ### Installation
 ```bash
 pip install -r requirements.txt
