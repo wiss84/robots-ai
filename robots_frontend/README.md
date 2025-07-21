@@ -73,6 +73,8 @@ create table if not exists public.conversations (
   user_id uuid references auth.users(id) on delete cascade,
   agent_id text not null,
   title text,
+  summary text,
+  last_summary_created_at timestamp with time zone,
   created_at timestamp with time zone default now()
 );
 
@@ -155,11 +157,14 @@ using (user_id = auth.uid());
 - **Visual Feedback**: Clean UI that hides technical FEN data from users
 
 ### Conversation Memory & Context Management
+- **Rolling Summarization**: The system uses a rolling summarization approach that incorporates new messages into existing summaries
 - **Automatic Context Loading**: When users open old conversations, the system automatically loads conversation context
 - **Intelligent Summarization**: Conversation history is summarized using backend AI to provide essential context
 - **Efficient Memory Usage**: Only relevant context is loaded, avoiding memory overload
 - **Seamless Experience**: Users can continue conversations naturally without losing context
 - **One-time Loading**: Context is loaded once per conversation session for optimal performance
+- **Database Integration**: Summaries are stored in the `conversations` table with `summary` and `last_summary_created_at` columns
+- **Smart Context Injection**: Previous conversation summaries are prepended to new messages as context for agents
 
 ### User Experience
 - **Authentication**: Supabase-based user authentication
@@ -236,7 +241,7 @@ robots_frontend/
 │   ├── utils/                # Utility functions
 │   │   ├── mapDataParser.ts  # Map data parsing utilities
 │   │   ├── chessParser.ts    # Chess response parsing utilities
-│   │   └── conversationSummarizer.ts # Conversation summarization utility
+│   │   └── conversationSummarizer.ts # Rolling conversation summarization utility
 │   ├── assets/               # Static assets
 │   │   └── react.svg         # React logo
 │   ├── App.tsx               # Main app component with routing
@@ -352,8 +357,8 @@ robots_frontend/
 - **Features**: Location data processing, map coordinate handling, route data parsing
 
 #### conversationSummarizer.ts
-- **Purpose**: Conversation summarization utility for context management
-- **Features**: Backend summarization calls, context loading, error handling
+- **Purpose**: Conversation summarization utility for rolling context management
+- **Features**: Backend summarization calls, rolling summary updates, error handling, previous summary integration
 
 ## 🛠️ Development Workflow
 

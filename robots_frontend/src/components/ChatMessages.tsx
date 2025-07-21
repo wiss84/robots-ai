@@ -43,11 +43,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 }) => (
   <div className="chat-messages">
     {messages.map((msg, idx) => {
-      // Auto-wrap unwrapped JSON responses for agent messages
-      const processedContent = msg.role === 'agent' ? autoWrapJsonResponse(msg.content) : msg.content;
+      // Auto-wrap unwrapped JSON responses for travel and realestate agent messages only
+      const processedContent =
+        msg.role === 'agent' && (agentId === 'travel' || agentId === 'realestate')
+          ? autoWrapJsonResponse(msg.content)
+          : msg.content;
 
-      // Remove JSON code blocks for markdown rendering
-      const contentWithoutJson = msg.role === 'agent' ? removeMapJsonBlocks(processedContent) : processedContent;
+      // Remove JSON code blocks for markdown rendering only for travel and realestate agents
+      const contentWithoutJson =
+        msg.role === 'agent' && (agentId === 'travel' || agentId === 'realestate')
+          ? removeMapJsonBlocks(processedContent)
+          : processedContent;
 
       return (
         <div

@@ -125,12 +125,13 @@ Each agent has its own endpoint:
 
 ### Conversation Summarization
 ```http
-POST /summarize
+POST /summarize/rolling
 Content-Type: application/json
 Authorization: Bearer your_token
 
 {
-  "messages": [
+  "previous_summary": "Previous conversation summary...",
+  "new_messages": [
     {"role": "user", "content": "Hello"},
     {"role": "agent", "content": "Hi there!"}
   ]
@@ -170,6 +171,7 @@ robots_backend/
 ├── osm_tools.py             # OpenStreetMap tools
 ├── chess_tool.py            # Chess game tools and move validation
 ├── summarize.py             # Conversation summarization endpoint
+├── RealtyUS_tools.py        # Real estate API tools
 ├── uploaded_files/          # User uploaded files directory
 └── README_FILE_PROCESSING.md # File processing documentation
 ```
@@ -177,11 +179,13 @@ robots_backend/
 ## 🛠️ Key Features
 
 ### Conversation Memory & Context Management
-- **Automatic Summarization**: When users open old conversations, the system automatically summarizes the conversation history using Gemini 2.0 Flash
+- **Rolling Summarization**: The system uses a rolling summarization approach that incorporates new messages into existing summaries
 - **Context Loading**: The summarized context is automatically loaded into the agent's memory when the user sends their first message
 - **Efficient Memory Usage**: Instead of loading entire conversation history, only the essential context is provided to agents
 - **One-time Loading**: Context is loaded only once per conversation session to avoid redundancy
 - **Independent Rate Limits**: Summarization uses `gemini-2.0-flash` with separate rate limits from main agents
+- **Database Integration**: Summaries are stored in the `conversations` table with `summary` and `last_summary_created_at` columns
+- **Smart Context Injection**: Previous conversation summaries are prepended to new messages as context for agents
 
 ### Multimodal Support
 - **Image Processing**: Agents can process images sent via URLs

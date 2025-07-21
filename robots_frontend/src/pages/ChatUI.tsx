@@ -15,7 +15,7 @@ import ChessboardComponent from '../components/Chessboard';
 import { agentNames } from '../data/AgentDescriptions';
 import { Chess } from 'chess.js';
 import { parseChessResponse } from '../utils/chessParser';
-import { summarizeConversation } from '../utils/conversationSummarizer';
+import { summarizeConversationRolling } from '../utils/conversationSummarizer';
 
 interface ChatMessage {
   role: string;
@@ -68,7 +68,7 @@ function ChatUI() {
     setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     // Inform the agent if a conversation is active
     if (isGamesAgent && agentId && user && conversationId) {
-      const startNewGameMsg = "User decided to start a new game.";
+      const startNewGameMsg = "User decided to start a new chess game.";
       try {
         await fetch('http://localhost:8000/chat', {
           method: 'POST',
@@ -344,32 +344,93 @@ function ChatUI() {
 
   // When a conversation is selected, fetch its messages
   const handleSelectConversation = async (convId: string) => {
+    console.log('Selecting conversation:', convId);
     setConversationId(convId);
     setLoadingMessages(true);
     // Reset chess state when switching conversations
     if (isGamesAgent) resetChessState();
-    const { data, error } = await supabase
+
+    // Fetch all messages for display
+    const { data: allData, error: allError } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', convId)
-      .order('created_at', { ascending: true }); // fetch all, oldest to newest
-    if (!error) {
-      const messages = (data || []).map(m => ({ role: m.role, content: m.content })); // full history
+      .order('created_at', { ascending: true });
+  
+    console.log('All messages fetched:', allData?.length || 0, 'Error:', allError);
+    
+    if (!allError) {
+      const messages = (allData || []).map(m => ({ role: m.role, content: m.content }));
       setMessages(messages);
+      console.log('Messages set in UI:', messages.length);
+    }
+
+    // Fetch summary and last_summary_created_at
+    const { data: convData, error: convError } = await supabase
+      .from('conversations')
+      .select('summary, last_summary_created_at')
+      .eq('id', convId)
+      .single();
+  
+    console.log('Conversation data:', convData, 'Error:', convError);
+    
+    const previousSummary = convData?.summary || '';
+    const lastSummaryCreatedAt = convData?.last_summary_created_at;
+
+    console.log('Previous summary:', previousSummary ? 'exists' : 'empty');
+    console.log('Last summary created at:', lastSummaryCreatedAt);
+
+    // If no last_summary_created_at, treat all messages as new
+    let recentMessages = [];
+    if (!lastSummaryCreatedAt) {
+      // First time summarizing this conversation
+      recentMessages = (allData || []).map(m => ({ 
+        role: m.role, 
+        content: m.content, 
+        created_at: m.created_at 
+      }));
+      console.log('First time summarizing, using all messages:', recentMessages.length);
+    } else {
+      // Fetch only new messages after last_summary_created_at (up to 30)
+      const { data: recentData, error: recentError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', convId)
+        .gt('created_at', lastSummaryCreatedAt)
+        .order('created_at', { ascending: true })
+        .limit(30);
       
-      // Summarize conversation history if there are messages
-      if (messages.length > 0) {
-        try {
-          const summary = await summarizeConversation(messages);
-          console.log('Conversation summarized:', summary);
-          
-          // Store summary for use with first message
-          sessionStorage.setItem(`conversation_summary_${convId}`, summary);
-          console.log('Conversation summary stored for first message');
-        } catch (error) {
-          console.error('Error processing conversation:', error);
-        }
+      console.log('Recent messages fetched:', recentData?.length || 0, 'Error:', recentError);
+      
+      recentMessages = (recentData || []).map(m => ({ 
+        role: m.role, 
+        content: m.content, 
+        created_at: m.created_at 
+      }));
+    }
+
+    if (recentMessages.length > 0) {
+      try {
+        console.log('Calling rolling summarization with', recentMessages.length, 'messages');
+        const summary = await summarizeConversationRolling(previousSummary, recentMessages);
+        console.log('Summary generated, length:', summary.length);
+        
+        // Update summary and last_summary_created_at in Supabase
+        const lastMsgCreatedAt = recentMessages[recentMessages.length - 1].created_at;
+        const { error: updateError } = await supabase
+          .from('conversations')
+          .update({ summary, last_summary_created_at: lastMsgCreatedAt })
+          .eq('id', convId);
+        
+        console.log('Summary updated in DB, error:', updateError);
+        
+        sessionStorage.setItem(`conversation_summary_${convId}`, summary);
+        console.log('Rolling conversation summary stored for first message');
+      } catch (error) {
+        console.error('Error processing rolling conversation summary:', error);
       }
+    } else {
+      console.log('No new messages to summarize');
     }
     setLoadingMessages(false);
   };
@@ -494,6 +555,19 @@ function ChatUI() {
     // Add user message to UI immediately
     setMessages(prev => [...prev, chatMessage]);
     
+    // Save user message to database
+    if (convId && user) {
+      await supabase.from('messages').insert([
+        {
+          conversation_id: convId,
+          user_id: user.id,
+          agent_id: agentId,
+          role: 'user',
+          content: userMessage
+        }
+      ]);
+    }
+    
     try {
       // Check if we have a conversation summary to send with first message
       const summaryKey = `conversation_summary_${convId}`;
@@ -591,8 +665,34 @@ function ChatUI() {
           isAgentTurn: false,
           gameStatus: parsed.status || 'active'
         });
+        
+        // Save agent response to database
+        if (convId && user) {
+          await supabase.from('messages').insert([
+            {
+              conversation_id: convId,
+              user_id: user.id,
+              agent_id: agentId,
+              role: 'agent',
+              content: data.response
+            }
+          ]);
+        }
       } else {
         setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
+        
+        // Save agent response to database
+        if (convId && user) {
+          await supabase.from('messages').insert([
+            {
+              conversation_id: convId,
+              user_id: user.id,
+              agent_id: agentId,
+              role: 'agent',
+              content: data.response
+            }
+          ]);
+        }
       }
     } catch (err: any) {
       console.error('Chat error:', err);

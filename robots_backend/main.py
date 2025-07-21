@@ -259,10 +259,23 @@ async def chat_with_agent(
             else:
                 response_content = str(last_message)
             
-
+            # Debug logging for response content type
+            print(f"Response content type: {type(response_content)}")
+            if isinstance(response_content, list):
+                print(f"Response content is a list with {len(response_content)} items")
+                for i, item in enumerate(response_content):
+                    print(f"  Item {i}: {type(item)} - {str(item)[:100]}...")
+            
+            # Ensure response_content is a string (handle lists, etc.)
+            if not isinstance(response_content, str):
+                if isinstance(response_content, list):
+                    # Join list elements with newlines, filtering out empty strings
+                    response_content = '\n'.join([str(item) for item in response_content if item])
+                else:
+                    response_content = str(response_content)
             
             # Check if response is empty and provide fallback
-            if not response_content or response_content.strip() == "":
+            if not response_content:
                 response_content = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
             
             print(f"Response content length: {len(response_content)}")

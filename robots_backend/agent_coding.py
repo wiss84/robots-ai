@@ -20,7 +20,7 @@ def get_system_prompt():
 
 # Initialize Gemini LLM with streaming enabled
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite-preview-06-17",
+    model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("GOOGLE_API_KEY"),
     temperature=0.1,
 )

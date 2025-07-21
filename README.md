@@ -162,6 +162,7 @@ robots-ai/
 │   ├── tools.py               # Shared tools and utilities
 │   ├── RealtyUS_tools.py      # Real estate API tools
 │   ├── file_processor.py      # File processing logic
+│   ├── summarize.py           # Conversation summarization endpoint
 │   └── uploaded_files/        # User uploaded files
 ├── robots_frontend/            # React TypeScript frontend
 │   ├── package.json           # Node.js dependencies
