@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import MapMessage from './MapMessage';
 // import { FiDownload } from 'react-icons/fi';
 import { autoWrapJsonResponse } from '../utils/mapDataParser';
+import { CodeBlock, parseAgentResponse } from '../utils/code_parser';
 
 interface Message {
   role: string;
@@ -64,37 +65,58 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           {/* Render agent message as full markdown, with special image styling for shopping agent */}
           {msg.role === 'agent' ? (
             <div className="chat-markdown">
-              <ReactMarkdown
-                components={{
-                  a: ({ node, ...props }) => (
-                    <a {...props} target="_blank" rel="noopener noreferrer" />
-                  ),
-                  img: ({ node, ...props }) => (
-                    agentId === 'shopping' ? (
-                      <img
-                        {...props}
-                        className="shopping-product-image-markdown"
-                        alt={props.alt || 'product'}
-                        onError={e => {
-                          if (e.currentTarget.src.endsWith('image-not-found.png')) {
-                            // If fallback also fails, use a transparent pixel
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src =
-                              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
-                          } else {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = '/assets/image-not-found.png';
-                          }
+              {agentId === 'coding' ? (
+                // Custom rendering for coding agent: split into text/code parts
+                parseAgentResponse(contentWithoutJson).map((part, i) =>
+                  part.type === 'code' ? (
+                    <CodeBlock key={i} code={part.content} language={part.language} />
+                  ) : (
+                    <div key={i} className="markdown-text-block">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ node, ...props }) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer" />
+                          ),
                         }}
-                      />
-                    ) : (
-                      <img {...props} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} alt={props.alt || ''} />
-                    )
+                      >
+                        {part.content}
+                      </ReactMarkdown>
+                    </div>
                   )
-                }}
-              >
-                {contentWithoutJson}
-              </ReactMarkdown>
+                )
+              ) : (
+                <ReactMarkdown
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a {...props} target="_blank" rel="noopener noreferrer" />
+                    ),
+                    img: ({ node, ...props }) => (
+                      agentId === 'shopping' ? (
+                        <img
+                          {...props}
+                          className="shopping-product-image-markdown"
+                          alt={props.alt || 'product'}
+                          onError={e => {
+                            if (e.currentTarget.src.endsWith('image-not-found.png')) {
+                              // If fallback also fails, use a transparent pixel
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src =
+                                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+                            } else {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = '/assets/image-not-found.png';
+                            }
+                          }}
+                        />
+                      ) : (
+                        <img {...props} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} alt={props.alt || ''} />
+                      )
+                    )
+                  }}
+                >
+                  {contentWithoutJson}
+                </ReactMarkdown>
+              )}
               {/* Only render map for travel and realestate agents */}
               {(agentId === 'travel' || agentId === 'realestate') && (
                 <MapMessage message={processedContent} />

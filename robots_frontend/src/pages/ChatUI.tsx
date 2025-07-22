@@ -89,6 +89,12 @@ function ChatUI() {
     }
   };
 
+  // Add a helper to clear chess state (set inactive)
+  const clearChessState = () => {
+    setGameState({ isActive: false, isAgentTurn: false, gameStatus: 'idle' });
+    setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  };
+
   // Check if this is the games agent
   const isGamesAgent = agentId === 'games';
 
@@ -347,8 +353,8 @@ function ChatUI() {
     console.log('Selecting conversation:', convId);
     setConversationId(convId);
     setLoadingMessages(true);
-    // Reset chess state when switching conversations
-    if (isGamesAgent) resetChessState();
+    // Always clear chess state when switching conversations
+    if (isGamesAgent) clearChessState();
 
     // Fetch all messages for display
     const { data: allData, error: allError } = await supabase
@@ -438,8 +444,8 @@ function ChatUI() {
   // Create a new conversation in Supabase
   const handleNewChat = async () => {
     if (!user || !agentId) return;
-    // Reset chess state for new chat
-    if (isGamesAgent) resetChessState();
+    // Always clear chess state for new chat
+    if (isGamesAgent) clearChessState();
     const { data, error } = await supabase
       .from('conversations')
       .insert([{ user_id: user.id, agent_id: agentId, title: 'New Conversation' }])
@@ -835,7 +841,7 @@ function ChatUI() {
 
   return (
     <ErrorBoundary>
-      <div className="chat-root">
+      <div className="chat-root" style={{ display: 'flex', height: '100vh' }}>
         <Navbar showHomeLink={true} showAgentSelectionLink={true} />
         <UsageMonitor />
         {/* Sidebar */}
@@ -857,8 +863,7 @@ function ChatUI() {
           setShowAllConversations={setShowAllConversations}
         />
         {/* Main Chat Area */}
-        <div className={`chat-main${showGreeting ? ' greeting-mode' : ''}`}>
-          <ChatPoses agentId={agentId} pose={pose} />
+        <div className={`chat-main${showGreeting ? ' greeting-mode' : ''}`} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           {showGreeting && (
             <>
               <div className="chat-greeting-header-outer greeting-mode">
@@ -889,7 +894,6 @@ function ChatUI() {
                     agentId={agentId}
                   />
                 </div>
-                
                 {/* Chessboard for Games Agent - Only show when game is active and chessPosition is set */}
                 {isGamesAgent && gameState.isActive && chessPosition && (
                   <div style={{ 
@@ -925,6 +929,10 @@ function ChatUI() {
               />
             </>
           )}
+        </div>
+        {/* Pose Container Column */}
+        <div className="pose-column">
+          <ChatPoses agentId={agentId} pose={pose} />
         </div>
       </div>
     </ErrorBoundary>

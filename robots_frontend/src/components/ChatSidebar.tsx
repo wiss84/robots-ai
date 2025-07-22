@@ -67,7 +67,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   </span>
                   <div style={{ position: 'relative' }}>
                     <button className="conversation-menu-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }} onClick={() => setDropdownOpen(dropdownOpen === conv.id ? null : conv.id)}>
-                      <FiMoreVertical size={18} color="#fff" />
+                      <FiMoreVertical size={18} />
                     </button>
                     {dropdownOpen === conv.id && (
                       <div className="conversation-dropdown" style={{ position: 'absolute', right: 0, top: 24, background: '#fff', border: '1px solid #eee', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', zIndex: 10 }}>

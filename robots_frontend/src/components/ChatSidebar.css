@@ -67,6 +67,10 @@
 .conversation-item:hover {
   background: #232323;
 }
+body.light-theme .conversation-item:hover {
+  background: #e0f7fa;
+  color: #007b8a;
+}
 .conversation-menu-btn {
   background: none;
   border: none;
@@ -75,4 +79,11 @@
 }
 .conversation-dropdown {
   min-width: 120px;
+}
+.conversation-menu-btn svg {
+  color: #fff;
+  transition: color 0.2s;
+}
+body.light-theme .conversation-menu-btn svg {
+  color: #23272f;
 }
