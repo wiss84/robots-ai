@@ -7,14 +7,14 @@ Enable seamless switching between specialized agents when users ask questions ou
 ## **Core Features**
 
 ### **1. Agent Awareness**
-- Each agent knows about other agents and their specializations
+- Each agent knows about other agents and their specializations (via system prompt)
 - Agents can recognize when questions are outside their domain
-- Agents can suggest appropriate handoffs
+- Agents can suggest appropriate handoffs by mentioning the target agent's name or id in their response
 
 ### **2. Smart Context Transfer**
 - Filter conversation history to only include relevant context
 - Avoid transferring irrelevant information (code to non-coding agents, etc.)
-- Preserve user's current question and relevant background
+- Always preserve and transfer the user's current question; optionally include a few recent relevant turns if needed for context
 
 ### **3. Seamless UI Transitions**
 - Smooth agent switching in the chat interface
@@ -23,35 +23,44 @@ Enable seamless switching between specialized agents when users ask questions ou
 
 ## **Implementation Steps**
 
-### **Phase 1: Basic Agent Handoff**
+### **Phase 1: Basic Agent Handoff (Hybrid Approach)**
 1. **Create Agent Directory**
-   - Define each agent's domain and capabilities
-   - Create mapping of question types to appropriate agents
+   - Use the existing agent definitions in AgentSelection.tsx (names, ids, keywords)
+   - Ensure each agent's domain and keywords are up to date
 
-2. **Implement Domain Detection**
-   - Add logic to detect when questions are outside current agent's domain
-   - Create handoff suggestion logic
+2. **Implement Domain Detection (Hybrid)**
+   - **Frontend Keyword-Based Switching:**
+     - Use the keywords from AgentSelection.tsx to detect when a user query matches another agent's domain
+     - Instantly switch to the appropriate agent and pass the user query as a new message
+   - **Agent-Initiated Handoff via System Prompt:**
+     - Update each agent's system prompt to include awareness of all other agents and their domains
+     - Instruct agents: If a user query is outside your domain and fits another agent's domain, respond with a message like: "Your question is outside my domain. Let me switch you to my coworker agent [agent_name or id] who specializes in this domain."
+     - The frontend listens for this pattern, extracts the agent id/name, and performs the switch, passing the user query to the new agent
 
 3. **Basic Context Transfer**
-   - Transfer only the current user question
-   - Pass basic user information
+   - Always transfer the current user question to the new agent
+   - Optionally, transfer the last 2-3 relevant conversation turns if needed for context (filtered by domain relevance)
+   - Pass basic user information if required
 
 ### **Phase 2: Smart Context Filtering**
 1. **Context Classification System**
-   - Create rules for what context is relevant to each domain
-   - Implement filtering logic
+   - Create rules for what context is relevant to each domain (start with hardcoded keyword checks)
+   - Implement filtering logic in backend or frontend as needed
 
 2. **Domain-Specific Filters**
-   - Finance Agent: Only financial, real estate, investment context
+   - Finance Agent: Only financial, investment context
    - Coding Agent: Only technical, code-related context
    - Real Estate Agent: Only property, location context
-   - Image Agent: Only visual, design-related context
-   - Chess Agent: Only game-related context
+   - Image Agent: Only visual, image generation, design-related context
+   - Games Agent: Only game-related context
+   - News Agent: Only latest, current news related context
+   - Shopping Agent: Only item shopping related context
+   - Travel Agent: Only travel, hotels, places to visit context
 
 ### **Phase 3: Enhanced UI & UX**
 1. **Smooth Transitions**
    - Update active agent in frontend
-   - Handle conversation state management
+   - Handle conversation state management (store history per agent)
    - Add visual indicators for agent switches
 
 2. **Return Path**
@@ -64,8 +73,8 @@ Enable seamless switching between specialized agents when users ask questions ou
    - "Since you're buying an investment property, you might also want to discuss financing options..."
 
 2. **Multi-Agent Collaboration**
-   - Enable multiple agents to work on complex requests
-   - Coordinate responses from different specialists
+   - Enable multiple agents to work on complex requests (future phase)
+   - Document requirements for multi-agent UI (e.g., multiple pose containers, agent-targeted messages)
 
 ## **Technical Architecture**
 
@@ -73,33 +82,24 @@ Enable seamless switching between specialized agents when users ask questions ou
 ```python
 # New files to create:
 - agent_handoff.py          # Handoff logic and context filtering
-- agent_directory.py        # Agent capabilities and domain mapping
-- context_filter.py         # Context filtering rules
+- agent_directory.py        # Agent capabilities and domain mapping (can be synced with frontend definitions)
+- context_filter.py         # Context filtering rules (start with hardcoded rules)
 ```
 
 ### **Frontend Changes**
 ```typescript
-// New components to create:
+// New/updated components to create:
 - AgentSwitcher.tsx        # UI for agent switching
 - ContextTransfer.tsx      # Handle context transfer display
-```
-
-### **Database Schema Updates**
-```sql
--- New tables:
-- agent_handoffs           # Track handoff history
-- conversation_contexts    # Store filtered context per agent
+- Update logic in ChatUI to listen for agent handoff messages and perform agent switch
 ```
 
 ## **Example User Flow**
 
 1. **User asks Real Estate Agent about financing**
-2. **Real Estate Agent detects domain mismatch**
-3. **Agent suggests handoff to Finance Agent**
-4. **System filters context (removes code, images, chess moves)**
-5. **Transfers relevant context (property details, investment intent)**
-6. **Switches UI to Finance Agent**
-7. **Finance Agent receives filtered context and responds**
+2. **Frontend detects finance keywords and switches to Finance Agent, or Real Estate Agent responds with a handoff message mentioning Finance Agent**
+3. **Frontend parses the handoff, switches UI to Finance Agent, and passes the user query (and optionally recent relevant turns)**
+4. **Finance Agent receives the context and responds**
 
 ## **Success Metrics**
 
@@ -112,9 +112,9 @@ Enable seamless switching between specialized agents when users ask questions ou
 
 - **Intelligent Routing**: AI-powered agent selection
 - **Context Learning**: Improve filtering based on user feedback
-- **Agent Collaboration**: Multiple agents working together on complex tasks
+- **Agent Collaboration**: Multiple agents working together on complex tasks (future phase)
 - **Personalized Handoffs**: Learn user preferences for agent switching
 
 ---
 
-*This plan provides a roadmap for implementing sophisticated agent handoff capabilities while maintaining clean separation of concerns and optimal user experience.* 
+*This plan provides a concrete, actionable roadmap for implementing robust agent handoff capabilities with a hybrid detection approach, clear context transfer logic, and a focus on seamless user experience.* 

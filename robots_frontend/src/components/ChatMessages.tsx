@@ -21,6 +21,7 @@ interface ChatMessagesProps {
   userName?: string;
   agentName?: string;
   agentId?: string;
+  isSummarizing?: boolean;
 }
 
 // Utility to remove JSON code blocks (and optionally other code blocks) from a string
@@ -40,7 +41,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   messagesEndRef, 
   userName = 'You',
   agentName = 'Agent',
-  agentId
+  agentId,
+  isSummarizing = false
 }) => (
   <div className="chat-messages">
     {messages.map((msg, idx) => {
@@ -58,7 +60,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
       return (
         <div
-          key={idx}
+          key={msg.fileUrl || msg.content || idx}
           className={`chat-message ${msg.role === 'user' ? 'user' : 'agent'}`}
         >
           <b className="chat-message-label">{msg.role === 'user' ? userName : agentName}:</b>{' '}
@@ -162,7 +164,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         </div>
       );
     })}
-    {loadingMessages && <div className="chat-message agent">{agentName} is typing...</div>}
+    {loadingMessages && (
+      <div className="chat-message agent">
+        {isSummarizing
+          ? `${agentName} is summarizing the conversation for context...`
+          : `${agentName} is typing...`}
+      </div>
+    )}
     <div ref={messagesEndRef} />
   </div>
 );

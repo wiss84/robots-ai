@@ -41,6 +41,7 @@ function ChatUI() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
   const [conversationId, setConversationId] = useState<string>('');
+  const [agentConversations, setAgentConversations] = useState<{ [agentId: string]: string }>({});
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -48,6 +49,7 @@ function ChatUI() {
   const [pose, setPose] = useState<'greeting'|'typing'|'thinking'|'arms_crossing'|'wondering'|'painting'>('greeting');
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const [isSummarizing, setIsSummarizing] = useState(false);
   // Chess position from backend
   const [chessPosition, setChessPosition] = useState<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   // Add missing state hooks for chess integration
@@ -348,13 +350,15 @@ function ChatUI() {
     fetchConversations();
   }, [user, agentId, supabase]);
 
-  // When a conversation is selected, fetch its messages
-  const handleSelectConversation = async (convId: string) => {
-    console.log('Selecting conversation:', convId);
+  // Reusable function to load a conversation and trigger summarization
+  const loadConversation = async (convId: string, agentIdToUse: string) => {
     setConversationId(convId);
+    if (agentIdToUse) {
+      setAgentConversations(prev => ({ ...prev, [agentIdToUse]: convId }));
+    }
     setLoadingMessages(true);
-    // Always clear chess state when switching conversations
-    if (isGamesAgent) clearChessState();
+    setIsSummarizing(true);
+    if (agentIdToUse === 'games') clearChessState();
 
     // Fetch all messages for display
     const { data: allData, error: allError } = await supabase
@@ -362,13 +366,10 @@ function ChatUI() {
       .select('*')
       .eq('conversation_id', convId)
       .order('created_at', { ascending: true });
-  
-    console.log('All messages fetched:', allData?.length || 0, 'Error:', allError);
-    
+
     if (!allError) {
       const messages = (allData || []).map(m => ({ role: m.role, content: m.content }));
       setMessages(messages);
-      console.log('Messages set in UI:', messages.length);
     }
 
     // Fetch summary and last_summary_created_at
@@ -377,37 +378,25 @@ function ChatUI() {
       .select('summary, last_summary_created_at')
       .eq('id', convId)
       .single();
-  
-    console.log('Conversation data:', convData, 'Error:', convError);
-    
+
     const previousSummary = convData?.summary || '';
     const lastSummaryCreatedAt = convData?.last_summary_created_at;
 
-    console.log('Previous summary:', previousSummary ? 'exists' : 'empty');
-    console.log('Last summary created at:', lastSummaryCreatedAt);
-
-    // If no last_summary_created_at, treat all messages as new
     let recentMessages = [];
     if (!lastSummaryCreatedAt) {
-      // First time summarizing this conversation
       recentMessages = (allData || []).map(m => ({ 
         role: m.role, 
         content: m.content, 
         created_at: m.created_at 
       }));
-      console.log('First time summarizing, using all messages:', recentMessages.length);
     } else {
-      // Fetch only new messages after last_summary_created_at (up to 30)
-      const { data: recentData, error: recentError } = await supabase
+      const { data: recentData } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', convId)
         .gt('created_at', lastSummaryCreatedAt)
         .order('created_at', { ascending: true })
         .limit(30);
-      
-      console.log('Recent messages fetched:', recentData?.length || 0, 'Error:', recentError);
-      
       recentMessages = (recentData || []).map(m => ({ 
         role: m.role, 
         content: m.content, 
@@ -417,28 +406,25 @@ function ChatUI() {
 
     if (recentMessages.length > 0) {
       try {
-        console.log('Calling rolling summarization with', recentMessages.length, 'messages');
         const summary = await summarizeConversationRolling(previousSummary, recentMessages);
-        console.log('Summary generated, length:', summary.length);
-        
-        // Update summary and last_summary_created_at in Supabase
         const lastMsgCreatedAt = recentMessages[recentMessages.length - 1].created_at;
-        const { error: updateError } = await supabase
+        await supabase
           .from('conversations')
           .update({ summary, last_summary_created_at: lastMsgCreatedAt })
           .eq('id', convId);
-        
-        console.log('Summary updated in DB, error:', updateError);
-        
         sessionStorage.setItem(`conversation_summary_${convId}`, summary);
-        console.log('Rolling conversation summary stored for first message');
       } catch (error) {
-        console.error('Error processing rolling conversation summary:', error);
+        // ignore summarization errors
       }
-    } else {
-      console.log('No new messages to summarize');
     }
     setLoadingMessages(false);
+    setIsSummarizing(false);
+  };
+
+  // When a conversation is selected, fetch its messages
+  const handleSelectConversation = async (convId: string) => {
+    console.log('Selecting conversation:', convId);
+    await loadConversation(convId, agentId || '');
   };
 
   // Create a new conversation in Supabase
@@ -452,6 +438,7 @@ function ChatUI() {
       .select();
     if (!error && data && data[0]) {
       setConversationId(data[0].id);
+      setAgentConversations(prev => ({ ...prev, [agentId]: data[0].id }));
       setMessages([]);
       setConversations(prev => [data[0], ...prev]);
     }
@@ -541,6 +528,7 @@ function ChatUI() {
       if (!error && data && data[0]) {
         convId = data[0].id;
         setConversationId(convId);
+        setAgentConversations(prev => ({ ...prev, [agentId]: convId }));
         setConversations(prev => [data[0], ...prev]);
       } else {
         setLoadingMessages(false);
@@ -743,6 +731,21 @@ function ChatUI() {
     }
   };
 
+  // --- Agent switch handoff logic ---
+  const onAgentSwitch = (newAgentId: string, message: string, file?: any, autoSend?: boolean) => {
+    navigate(`/chat/${newAgentId}`);
+    // Resume previous conversation if it exists, otherwise start new
+    const prevConvId = agentConversations[newAgentId];
+    if (prevConvId) {
+      loadConversation(prevConvId, newAgentId);
+    } else {
+      setConversationId('');
+      setMessages([]);
+    }
+    setInput(message);
+    // Never auto-send after switch (per latest logic)
+  };
+
   useEffect(() => {
     // Scroll to bottom when messages change
     if (messagesEndRef.current) {
@@ -877,6 +880,8 @@ function ChatUI() {
                 loadingMessages={loadingMessages}
                 handleSend={handleSend}
                 conversationId={conversationId}
+                currentAgentId={agentId || ''}
+                onAgentSwitch={onAgentSwitch}
               />
             </>
           )}
@@ -892,6 +897,7 @@ function ChatUI() {
                     userName={userName}
                     agentName={agentName}
                     agentId={agentId}
+                    isSummarizing={isSummarizing}
                   />
                 </div>
                 {/* Chessboard for Games Agent - Only show when game is active and chessPosition is set */}
@@ -926,6 +932,8 @@ function ChatUI() {
                 loadingMessages={loadingMessages}
                 handleSend={handleSend}
                 conversationId={conversationId}
+                currentAgentId={agentId || ''}
+                onAgentSwitch={onAgentSwitch}
               />
             </>
           )}

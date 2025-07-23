@@ -13,62 +13,62 @@ export type Agent = {
   keywords?: string[];
 };
 
-const agents: Agent[] = [
+export const agents: Agent[] = [
   {
     id: 'travel',
     name: 'Trip Planner',
     description: agentDescriptions.travel,
     avatar: '/avatars/travel_agent/travel.webp',
-    keywords: ['vacation', 'trips', 'travel', 'destinations', 'hotels', 'flights', 'plane', 'car rental']
+    keywords: ['vacation', 'trips', 'travel', 'destinations', 'hotels', 'flights', 'plane', 'car rental', 'travel planning', 'travel tips', 'travel advice', 'trip planning', 'trip advice', 'trip tips', 'travel recommendations', 'trip reommendations']
   },
   {
     id: 'realestate',
     name: 'Home Searcher',
     description: 'Helps with real estate advice and searches.',
     avatar: '/avatars/realestate_agent/realestate.webp',
-    keywords: ['houses', 'apartments', 'property', 'flats', 'rent', 'buy home']
+    keywords: ['houses', 'apartments', 'realestate', 'property', 'flats', 'rent', 'rent flat', 'rent house', 'rent apartment', 'rent property', 'rent flats', 'rent houses', 'buy home', 'buy house', 'buy apartment', 'buy property', 'buy flat']
   },
   {
     id: 'news',
     name: 'News Searcher',
     description: 'Delivers trending news and media.',
     avatar: '/avatars/news_agent/news.webp',
-    keywords: ['news', 'headlines', 'media', 'articles']
+    keywords: ['news', 'headlines', 'media', 'articles', 'current news', 'latest news', 'news articles', 'news headlines', 'news media', 'news articles', 'news headlines']
   },
   {
     id: 'finance',
     name: 'Finance Advisor',
     description: 'Financial insights and tools expert.',
     avatar: '/avatars/finance_agent/finance.webp',
-    keywords: ['money', 'investments', 'budget', 'stocks', 'finance', 'loans']
+    keywords: ['investments', 'stocks', 'finance', 'loans', 'government bonds', 'investment advice', 'investment tips', 'investment recommendations']
   },
   {
     id: 'image',
     name: 'Image Generator',
     description: 'Generate and display images from text or speech.',
     avatar: '/avatars/image_agent/image_generation.webp',
-    keywords: ['image', 'photo', 'generation']
+    keywords: ['image', 'photo', 'image generation', 'Create an image', 'Create a photo', 'Create a picture', 'Create a drawing', 'Create a painting', 'Create a sketch', 'Create a digital art', 'Create a digital painting', 'Create a digital sketch', 'Create a digital drawing','generate an image']
   },
   {
     id: 'coding',
     name: 'Code Advisor',
     description: 'Your expert coding assistant.',
     avatar: '/avatars/coding_agent/coding.webp',
-    keywords: ['coding', 'programming', 'developer', 'javascript', 'python']
+    keywords: ['coding', 'programming', 'developer', 'javascript', 'python', 'code']
   },
   {
     id: 'shopping',
     name: 'Shopping Assistant',
     description: agentDescriptions.shopping,
     avatar: '/avatars/shopping_agent/shopping.webp',
-    keywords: ['shopping', 'products', 'buy', 'purchase', 'deals', 'reviews', 'compare prices']
+    keywords: ['shopping', 'products', 'deals', 'compare prices']
   },
   {
     id: 'games',
     name: 'Game Buddy',
     description: agentDescriptions.games,
     avatar: '/avatars/games_agent/games.webp',
-    keywords: ['chess', 'games', 'board games', 'play', 'strategy', 'puzzle']
+    keywords: ['chess', 'games','play']
   }
 ];
 
