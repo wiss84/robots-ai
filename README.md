@@ -24,6 +24,9 @@ https://youtu.be/w6gwGUEF7i0
 Watch a quick demo of the new powerful agent-switching system in action:
 https://youtu.be/Z1i5hmBJz-I
 
+Watch a quick demo of the (Agent Mode) coding Agent in action:
+https://youtu.be/j2UX84jdfz8
+
 ## ✨ Features
 
 ### 🤖 Specialized AI Agents
