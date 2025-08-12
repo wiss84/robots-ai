@@ -98,6 +98,75 @@
 }
 
 .dob-group .dob-input input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #121212;
+  color: white;
+}
+
+/* Auth Text and Link Styles */
+.auth-text-center {
+  text-align: center;
+  color: #ccc;
+}
+
+.auth-text-center.with-margin {
+  margin-top: 1rem;
+}
+
+.auth-link {
+  color: #00bcd4;
+  text-decoration: none;
+}
+
+.auth-button-container {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Auth Text and Link Styles */
+.auth-text-center {
+  text-align: center;
+  color: #ccc;
+}
+
+.auth-text-center.with-margin {
+  margin-top: 1rem;
+}
+
+.auth-link {
+  color: #00bcd4;
+  text-decoration: none;
+}
+
+.auth-button-container {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Auth Text and Link Styles */
+.auth-text-center {
+  text-align: center;
+  color: #ccc;
+}
+
+.auth-text-center.with-margin {
+  margin-top: 1rem;
+}
+
+.auth-link {
+  color: #00bcd4;
+  text-decoration: none;
+}
+
+.auth-button-container {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
   padding: 0.6rem;
   font-size: 0.9rem;
   width: 100%;

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import UserAvatar from './UserAvatar';
+import './Navbar.css';
 
 interface NavbarProps {
   showLogo?: boolean;
@@ -35,12 +36,11 @@ const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <nav className="navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div className="navbar-left">
         {showLogo && (
           <div 
             className="logo" 
             onClick={() => navigate('/')}
-            style={{ cursor: 'pointer' }}
           >
             {logoText}
           </div>
@@ -52,7 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <button className="nav-link" onClick={() => navigate('/agents')}>Agent Selection</button>
         )}
       </div>
-      <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="nav-actions">
         {searchBox}
         {loading ? (
           <div>Loading...</div>

@@ -12,10 +12,7 @@ const SignIn = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const { user, supabase, signOut } = useAuth();
-    // useEffect(() => {
-    //     localStorage.clear(); // This goes here!
-    //     console.log('localStorage cleared');
-    //   }, []);
+  
   // Load saved credentials only if 'rememberMe' was checked previously
   useEffect(() => {
     const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
@@ -115,10 +112,10 @@ const SignIn = () => {
         <Navbar />
         <div className="auth-container">
           <h2>You're Already Signed In!</h2>
-          <p style={{ textAlign: 'center', color: '#ccc' }}>
+          <p className="auth-text-center">
             Welcome back, {user?.email}
           </p>
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <div className="auth-button-container">
             <Link to="/" className="nav-button">
               Go to Homepage
             </Link>
@@ -180,9 +177,9 @@ const SignIn = () => {
           </button>
         </form>
         
-        <p style={{ textAlign: 'center', marginTop: '1rem', color: '#ccc' }}>
+        <p className="auth-text-center with-margin">
           Don't have an account?{' '}
-          <Link to="/signup" style={{ color: '#00bcd4', textDecoration: 'none' }}>
+          <Link to="/signup" className="auth-link">
             Sign Up
           </Link>
         </p>

@@ -108,6 +108,7 @@ dist
 # Temporary folders
 tmp/
 temp/
+.zencoder/
 
 # Logs
 logs
@@ -294,3 +295,6 @@ dist/
 *.pfx
 secrets.json
 config.json 
+
+# Uploaded files
+uploaded_files/

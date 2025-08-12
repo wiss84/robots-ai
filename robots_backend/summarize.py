@@ -16,12 +16,14 @@ load_dotenv()
 router = APIRouter(prefix="/summarize", tags=["summarize"])
 security = HTTPBearer()
 
-# Initialize summarization LLM
-summarize_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0.1,
-)
+# Import dynamic model configuration
+from dynamic_model_config import get_current_gemini_model
+
+# Initialize summarization LLM with dynamic model selection
+def get_summarize_llm():
+    return get_current_gemini_model(temperature=0.1)
+
+summarize_llm = get_summarize_llm()
 
 class RollingSummarizeRequest(BaseModel):
     previous_summary: str
@@ -74,7 +76,9 @@ async def rolling_summarize(
 
         Updated summary:
         """
-        summary_response = summarize_llm.invoke(summary_prompt)
+        # Get current LLM instance (may have changed due to rate limiting)
+        current_summarize_llm = get_summarize_llm()
+        summary_response = current_summarize_llm.invoke(summary_prompt)
         summary = summary_response.content
         return SummarizeResponse(summary=summary)
     except Exception as e:

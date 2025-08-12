@@ -6,9 +6,15 @@ interface FileUploadProps {
   conversationId?: string;
   onUploadSuccess?: (fileInfo: any) => void;
   onFileSelected?: (file: File) => void;
+  workspaceUpload?: boolean;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ conversationId, onUploadSuccess, onFileSelected }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ 
+  conversationId, 
+  onUploadSuccess, 
+  onFileSelected,
+  workspaceUpload = false 
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +33,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ conversationId, onUploadSuccess
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('workspace_upload', workspaceUpload.toString());
       if (conversationId) formData.append('conversation_id', conversationId);
-      const res = await fetch('http://localhost:8000/files/upload', {
+      
+      const res = await fetch('http://localhost:8000/project/files/upload', {
         method: 'POST',
         body: formData,
       });

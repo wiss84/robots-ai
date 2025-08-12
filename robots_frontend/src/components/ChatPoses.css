@@ -1,5 +1,4 @@
-.chat-poses-container {
-  /* Remove position: fixed, top, right */
+.chat-poses-container { 
   width: 200px;
   height: 300px;
   display: flex;
@@ -22,6 +21,8 @@
   align-items: flex-end;
   justify-content: flex-start;
   padding-top: 24px;
+  flex-shrink: 0;
+  position: relative;
 }
 
 body.dark-theme .chat-poses-container {

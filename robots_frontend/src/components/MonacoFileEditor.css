@@ -1,0 +1,160 @@
+/* Monaco File Editor Styles */
+
+.monaco-editor-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Suggestion controls */
+.suggestion-controls {
+  position: relative;
+  padding: 16px;
+  background: var(--main-bg, #1e1e1e);
+  border-bottom: 1px solid var(--main-color, #333);
+}
+
+.suggestion-description {
+  margin-bottom: 12px;
+  color: var(--text-color, #ffffff);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.suggestion-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.suggestion-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.3s ease;
+}
+
+/* Accept button */
+.suggestion-buttons button:nth-child(1) {
+  background: #00bcd4;
+  color: #121212;
+}
+
+.suggestion-buttons button:nth-child(1):hover {
+  background: #0097a7;
+}
+
+/* Reject button */
+.suggestion-buttons button:nth-child(2) {
+  background: #ff4757;
+  color: white;
+}
+
+.suggestion-buttons button:nth-child(2):hover {
+  background: #ff3742;
+}
+
+/* Show/Hide Diff button */
+.suggestion-buttons button:nth-child(3) {
+  background: #2d2d2d;
+  color: white;
+  border: 1px solid #555;
+}
+
+.suggestion-buttons button:nth-child(3):hover {
+  background: #3d3d3d;
+}
+
+/* Suggestion highlighting styles */
+.suggestionLineChanged {
+  background-color: rgba(255, 204, 0, 0.2);
+}
+
+.suggestionGlyphChanged {
+  background-color: #ffcc00;
+  width: 5px !important;
+  margin-left: 3px;
+}
+
+.suggestionLineAdded {
+  background-color: rgba(0, 204, 102, 0.2);
+}
+
+.suggestionGlyphAdded {
+  background-color: #00cc66;
+  width: 5px !important;
+  margin-left: 3px;
+}
+
+.suggestionLineRemoved {
+  background-color: rgba(255, 102, 102, 0.2);
+}
+
+.suggestionGlyphRemoved {
+  background-color: #ff6666;
+  width: 5px !important;
+  margin-left: 3px;
+}
+
+/* Diff view controls */
+.diff-view-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--main-bg, #1e1e1e);
+  border: 1px solid var(--main-color, #333);
+  border-radius: 8px;
+  padding: 8px 16px;
+}
+
+.diff-view-controls span {
+  color: var(--text-color, #ffffff);
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.diff-view-exit-btn {
+  padding: 8px 16px;
+  background: #2d2d2d;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.3s ease;
+}
+
+.diff-view-exit-btn:hover {
+  background: #3d3d3d;
+}
+
+/* Agent suggestion panel */
+.agent-suggestion-panel {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: var(--main-bg, #1e1e1e);
+  border: 1px solid var(--main-color, #333);
+  padding: 15px;
+  border-radius: 6px;
+  max-width: 450px;
+  width: 400px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.suggestion-shortcuts {
+  font-size: 12px;
+  color: #999;
+}
+
+.suggestion-shortcuts span {
+  margin: 0 8px;
+}

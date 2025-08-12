@@ -1,22 +1,37 @@
 import React, { useState, useRef } from 'react';
 import type { DragEvent } from 'react';
 import './ChatInput.css';
-import { FiMic, FiSend, FiX } from 'react-icons/fi';
+import { FiMic, FiSend, FiX, FiStopCircle } from 'react-icons/fi';
+import { FaRobot } from 'react-icons/fa';
 import FileUpload from './FileUpload';
 import { agents } from '../pages/AgentSelection';
 import type { Agent } from '../pages/AgentSelection';
 
 interface ChatInputProps {
-  input: string;
-  setInput: (val: string) => void;
   loadingMessages: boolean;
-  handleSend: (attachedFile?: any, overrideAgentId?: string) => void;
+  handleSend: (message: string, attachedFile?: any, overrideAgentId?: string) => void;
   conversationId: string;
-  currentAgentId: string; // <-- Add this prop
+  currentAgentId: string;
   onAgentSwitch: (newAgentId: string, message: string, file?: any, autoSend?: boolean) => void;
+  isCodingAgent?: boolean;
+  isAgentMode?: boolean;
+  onToggleAgentMode?: () => void;
+  onCancel?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages, handleSend, conversationId, currentAgentId, onAgentSwitch }) => {
+const ChatInput: React.FC<ChatInputProps> = ({
+
+  loadingMessages,
+  handleSend,
+  conversationId,
+  currentAgentId,
+  onAgentSwitch,
+  isCodingAgent = false,
+  isAgentMode = false,
+  onToggleAgentMode,
+  onCancel,
+}) => {
+  const [input, setInput] = useState('');
   const [attachedFile, setAttachedFile] = useState<any>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +77,10 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages,
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('workspace_upload', (isCodingAgent && isAgentMode).toString());
       if (conversationId) formData.append('conversation_id', conversationId);
-      fetch('http://localhost:8000/files/upload', {
+      
+      fetch('http://localhost:8000/project/files/upload', {
         method: 'POST',
         body: formData,
       })
@@ -109,7 +126,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages,
         setPendingFile(attachedFile);
         return;
       }
-      handleSend(attachedFile);
+      handleSend(input, attachedFile);
+      setInput('');
       setAttachedFile(null);
       setError(null);
     } catch (err: any) {
@@ -117,9 +135,57 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages,
     }
   };
 
+  const confirmAgentSwitch = () => {
+    if (pendingSwitchAgent) {
+      onAgentSwitch(pendingSwitchAgent.id, '', pendingFile, false);
+    }
+    setPendingSwitchAgent(null);
+    setPendingFile(null);
+    setAttachedFile(null);
+    setError(null);
+    setInput('');
+  };
+
+  const cancelAgentSwitch = () => {
+    handleSend(input, pendingFile);
+    setInput('');
+    setPendingSwitchAgent(null);
+    setPendingFile(null);
+    setAttachedFile(null);
+    setError(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (uploading) return; // Prevent send while uploading
+      try {
+        // --- Smarter agent switch confirmation logic (same as onSend) ---
+        const currentAgent = agents.find(agent => agent.id === currentAgentId);
+        const matchesCurrent = currentAgent && currentAgent.keywords && matchesAgentKeyword(input, currentAgent.keywords);
+        const matchedAgent = agents.find(agent =>
+          agent.id !== currentAgentId &&
+          agent.keywords &&
+          matchesAgentKeyword(input, agent.keywords)
+        );
+        if (matchedAgent && !matchesCurrent) {
+          setPendingSwitchAgent(matchedAgent);
+          setPendingFile(attachedFile);
+          return;
+        }
+        handleSend(input, attachedFile);
+        setInput('');
+        setAttachedFile(null);
+        setError(null);
+      } catch (err: any) {
+        setError('Send error: ' + err.message);
+      }
+    }
+  };
+
   return (
-    <>
-      {/* Agent switch confirmation dialog */}
+    <div className="chat-input-container" ref={inputContainerRef}>
+      {error && <div className="chat-input-error">{error}</div>}
       {pendingSwitchAgent && (
         <div className="agent-switch-modal">
           <div className="agent-switch-modal-content">
@@ -130,28 +196,13 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages,
             <div className="agent-switch-modal-buttons">
               <button
                 className="agent-switch-confirm"
-                style={{ background: '#00bcd4', color: '#fff', border: 'none', borderRadius: 6, padding: '0.5rem 1.2rem', marginRight: 8, cursor: 'pointer' }}
-                onClick={() => {
-                  onAgentSwitch(pendingSwitchAgent.id, '', pendingFile, false);
-                  setPendingSwitchAgent(null);
-                  setPendingFile(null);
-                  setAttachedFile(null);
-                  setError(null);
-                  setInput('');
-                }}
+                onClick={confirmAgentSwitch}
               >
                 Yes, switch
               </button>
               <button
                 className="agent-switch-cancel"
-                style={{ background: '#00bcd4', color: '#fff', border: 'none', borderRadius: 6, padding: '0.5rem 1.2rem', marginLeft: 8, cursor: 'pointer' }}
-                onClick={() => {
-                  handleSend(pendingFile);
-                  setPendingSwitchAgent(null);
-                  setPendingFile(null);
-                  setAttachedFile(null);
-                  setError(null);
-                }}
+                onClick={cancelAgentSwitch}
               >
                 No, stay here
               </button>
@@ -164,19 +215,17 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages,
         onSubmit={onSend}
       >
         <div
-          className={`chat-input-container${dragActive ? ' drag-active' : ''}`}
-          ref={inputContainerRef}
+          className={`chat-input-wrapper${dragActive ? ' drag-active' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {error && <div className="chat-input-error">{error}</div>}
           {attachedFile && (
             <div className="chat-attachment-preview">
               <div className="attachment-info">
                 {attachedFile.content_type && attachedFile.content_type.startsWith('image/') ? (
                   <img
-                    src={`/uploaded_files/${attachedFile.filename}`}
+                    src={attachedFile.file_url || `/uploaded_files/${attachedFile.filename}`}
                     alt="preview"
                     className="attachment-thumbnail"
                   />
@@ -196,53 +245,72 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, loadingMessages,
               </button>
             </div>
           )}
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={dragActive ? 'Drop file here...' : uploading ? 'Uploading file...' : 'Type your message...'}
-            className="chat-input"
-            disabled={loadingMessages || uploading}
-            rows={3}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (uploading) return; // Prevent send while uploading
-                try {
-                  // --- Smarter agent switch confirmation logic (same as onSend) ---
-                  const currentAgent = agents.find(agent => agent.id === currentAgentId);
-                  const matchesCurrent = currentAgent && currentAgent.keywords && matchesAgentKeyword(input, currentAgent.keywords);
-                  const matchedAgent = agents.find(agent =>
-                    agent.id !== currentAgentId &&
-                    agent.keywords &&
-                    matchesAgentKeyword(input, agent.keywords)
-                  );
-                  if (matchedAgent && !matchesCurrent) {
-                    setPendingSwitchAgent(matchedAgent);
-                    setPendingFile(attachedFile);
-                    return;
-                  }
-                  handleSend(attachedFile);
-                  setAttachedFile(null);
-                  setError(null);
-                } catch (err: any) {
-                  setError('Send error: ' + err.message);
-                }
+          <div className="chat-input-row">
+            <textarea
+              className="chat-input"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isCodingAgent ? 
+                `Message in ${isAgentMode ? 'Agent' : 'Ask'} Mode...` : 
+                'Type your message...'
               }
-            }}
-          />
-          <div className="chat-input-buttons">
-            <FileUpload conversationId={conversationId} onUploadSuccess={fileInfo => { setUploading(false); handleFileUpload(fileInfo); }} />
-            <button type="button" className="chat-mic-btn" disabled={uploading}>
-              <FiMic size={24} color="#00bcd4" />
-            </button>
-            <button type="submit" className="chat-send-btn" disabled={uploading}>
-              <FiSend size={26} color="#00bcd4" />
-            </button>
-            {uploading && <span className="chat-uploading-spinner">Uploading...</span>}
+              disabled={loadingMessages || uploading}
+              rows={3}
+            />
+            <div className="chat-input-buttons">
+              <FileUpload 
+                conversationId={conversationId}
+                workspaceUpload={isCodingAgent && isAgentMode}
+                onUploadSuccess={(fileInfo) => {
+                  setUploading(false);
+                  handleFileUpload(fileInfo);
+                }}
+              />
+              <button 
+                type="button" 
+                className="chat-mic-btn" 
+                disabled={uploading}
+                title="Voice input (coming soon)"
+              >
+                <FiMic size={24} color="#00bcd4" />
+              </button>
+              {loadingMessages ? (
+                <button
+                  type="button"
+                  className="chat-send-btn"
+                  onClick={onCancel}
+                  disabled={uploading || !onCancel}
+                  title="Stop"
+                >
+                  <FiStopCircle size={24} color="#e53935" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="chat-send-btn"
+                  disabled={uploading || (!input.trim() && !attachedFile)}
+                >
+                  <FiSend size={24} color="#00bcd4" />
+                </button>
+              )}
+              {isCodingAgent && (
+                <button
+                  type="button"
+                  className={`agent-mode-toggle ${isAgentMode ? 'active' : ''}`}
+                  onClick={onToggleAgentMode}
+                  title={isAgentMode ? 'Switch to Ask Mode' : 'Switch to Agent Mode'}
+                  disabled={loadingMessages || uploading}
+                >
+                  <FaRobot size={24} color="#00bcd4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        {uploading && <div className="chat-uploading-spinner">Uploading...</div>}
       </form>
-    </>
+    </div>
   );
 };
 

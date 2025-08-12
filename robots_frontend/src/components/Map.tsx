@@ -81,25 +81,9 @@ const Map: React.FC<MapProps> = ({
 
   // Custom marker icon for POIs
   const createCustomIcon = (type: string) => {
-    const colors: Record<string, string> = {
-      restaurant: '#ff6b6b',
-      hotel: '#4ecdc4',
-      shop: '#45b7d1',
-      tourism: '#96ceb4',
-      amenity: '#feca57',
-      default: '#6c5ce7'
-    };
-    
     return L.divIcon({
       className: 'custom-marker',
-      html: `<div style="
-        width: 20px;
-        height: 20px;
-        background-color: ${colors[type] || colors.default};
-        border: 2px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      "></div>`,
+      html: `<div class="custom-marker-dot ${type}"></div>`,
       iconSize: [20, 20],
       iconAnchor: [10, 10]
     });
@@ -115,11 +99,11 @@ const Map: React.FC<MapProps> = ({
   };
 
   return (
-    <div className={`map-container ${className}`} style={{ height, width: '100%' }}>
+    <div className={`map-container ${className}`} style={{ height }}>
       <MapContainer
         center={center}
         zoom={zoom}
-        style={{ height: '100%', width: '100%' }}
+        className="map-leaflet-container"
         ref={mapRef}
       >
         <TileLayer
@@ -145,7 +129,7 @@ const Map: React.FC<MapProps> = ({
                 {marker.tags && Object.keys(marker.tags).length > 0 && (
                   <div>
                     <strong>Tags:</strong>
-                    <ul style={{ margin: '5px 0', paddingLeft: '15px' }}>
+                    <ul>
                       {Object.entries(marker.tags).map(([key, value]) => (
                         <li key={key}>{key}: {value}</li>
                       ))}

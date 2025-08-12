@@ -1,0 +1,41 @@
+.user-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.user-avatar-button {
+  cursor: pointer;
+}
+
+.user-avatar-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  background: #1b1b1b;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 200px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+.user-email {
+  margin-bottom: 8px;
+}
+
+.user-menu-button {
+  width: 100%;
+  margin: 10px 0;
+  font-size: 18px;
+  color: #00bcd4;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.signout-btn {
+  color: red;
+  width: 100%;
+  margin-top: 8px;
+}

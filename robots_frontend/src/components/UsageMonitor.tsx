@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './UsageMonitor.css';
 
 interface UsageStats {
   requestsToday: number;
@@ -81,36 +82,17 @@ const UsageMonitor: React.FC = () => {
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      background: '#fff3cd',
-      border: '1px solid #ffeaa7',
-      borderRadius: '8px',
-      padding: '1rem',
-      maxWidth: '300px',
-      zIndex: 1000,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-    }}>
-      <h4 style={{ margin: '0 0 0.5rem 0', color: '#856404' }}>
+    <div className="usage-monitor">
+      <h4 className="usage-monitor-title">
         ⚠️ Usage Warning
       </h4>
-      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#856404' }}>
+      <p className="usage-monitor-message">
         You've made {usageStats.requestsThisMinute} requests this minute. 
         Consider taking a short break to avoid hitting API limits (15 requests/minute).
       </p>
       <button
         onClick={() => setShowWarning(false)}
-        style={{
-          background: 'transparent',
-          border: '1px solid #856404',
-          color: '#856404',
-          padding: '0.25rem 0.5rem',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '0.8rem'
-        }}
+        className="usage-monitor-dismiss-btn"
       >
         Dismiss
       </button>

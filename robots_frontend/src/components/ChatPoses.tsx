@@ -4,6 +4,7 @@ import './ChatPoses.css';
 interface ChatPosesProps {
   agentId?: string;
   pose: 'greeting'|'typing'|'thinking'|'arms_crossing'|'wondering'|'painting';
+  useNewCodingPoses?: boolean;
 }
 
 const agentPoses = {
@@ -13,6 +14,13 @@ const agentPoses = {
     thinking: '/avatars/coding_agent/thinking_pose.webp',
     arms_crossing: '/avatars/coding_agent/arms_crossing_pose.webp',
     wondering: '/avatars/coding_agent/wondering_pose.webp',
+  },
+  coding_new: {
+    greeting: '/avatars/coding_agent/greeting_pose_new.webp',
+    typing: '/avatars/coding_agent/typing_pose_new.webp',
+    thinking: '/avatars/coding_agent/thinking_pose_new.webp',
+    arms_crossing: '/avatars/coding_agent/arms_crossing_pose_new.webp',
+    wondering: '/avatars/coding_agent/wondering_pose_new.webp',
   },
   finance: {
     greeting: '/avatars/finance_agent/greeting_pose.webp',
@@ -68,13 +76,15 @@ const agentPoses = {
   },
 };
 
-const ChatPoses: React.FC<ChatPosesProps> = ({ agentId, pose }) => {
-  const agentKey = (agentId?.replace('_agent', '') || 'coding') as keyof typeof agentPoses;
+const ChatPoses: React.FC<ChatPosesProps> = ({ agentId, pose, useNewCodingPoses }) => {
+  let agentKey = (agentId?.replace('_agent', '') || 'coding') as keyof typeof agentPoses;
+  if (agentKey === 'coding' && useNewCodingPoses) agentKey = 'coding_new' as keyof typeof agentPoses;
   const poses = agentPoses[agentKey];
   const src = poses?.[pose as keyof typeof poses] || poses?.greeting;
+  const isCodingNew = agentKey === 'coding_new';
   return (
-    <div className="chat-poses-container">
-      <img src={src} alt={pose} style={{ width: '90%', height: 'auto', borderRadius: 12 }} />
+    <div className="chat-poses-container" style={isCodingNew ? { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}>
+      <img src={src} alt={pose} style={isCodingNew ? { maxHeight: '100%', maxWidth: '100%', height: '100%', width: '100%', borderRadius: 12, objectFit: 'fill' } : { width: '90%', height: 'auto', borderRadius: 12 }} />
     </div>
   );
 };

@@ -1,0 +1,286 @@
+.custom-file-explorer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--main-bg, #1e1e1e);
+  overflow: hidden;
+  font-size: 14px;
+  position: relative;
+  padding-bottom: 35px; /* Match the parent's bottom padding */
+  margin-bottom: -35px; /* Counteract the padding to maintain layout */
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+}
+
+.explorer-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--main-color, #2d2d2d);
+  background: var(--sidebar-bg, #252526);
+  flex-shrink: 0;
+}
+
+.explorer-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--input-border, #555);
+  background: var(--input-bg, #3c3c43);
+  color: var(--input-color, #d4d4d4);
+  font-size: 13px;
+  outline: none;
+}
+
+.explorer-tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--main-bg, #1e1e1e);
+  padding: 4px 0 4px 0; /* Add bottom padding to prevent content from touching the border */
+  margin-bottom: 35px; /* Ensure content doesn't go under the bottom border */
+  min-height: 0;
+}
+
+.explorer-node {
+  user-select: none;
+}
+
+.explorer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+  color: var(--main-color, #d4d4d4);
+}
+
+.explorer-row.selected, .explorer-row:hover {
+  background: var(--sidebar-bg, #2a2d2e);
+}
+
+.explorer-row.folder .explorer-label {
+  font-weight: 500;
+}
+
+.explorer-icon {
+  margin-right: 4px;
+  color: var(--accent-color, #4ec9b0);
+}
+
+.explorer-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--main-color, #d4d4d4);
+}
+
+.explorer-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.explorer-actions svg {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  color: var(--main-color, #d4d4d4);
+}
+
+.explorer-actions svg:hover {
+  opacity: 1;
+}
+
+.explorer-children {
+  margin-left: 16px;
+  border-left: 1px solid var(--main-color, #2d2d2d);
+}
+
+.search-highlight {
+  background: #ffe082;
+  color: #c62828;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.explorer-action-menu {
+  position: absolute;
+  top: 24px;
+  right: 0;
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  z-index: 1000;
+  min-width: 100px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.explorer-action-menu-item {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.explorer-action-menu-item.delete {
+  color: #e53935;
+}
+
+.explorer-action-menu-wrapper {
+  position: relative;
+}
+
+.explorer-action-icon {
+  cursor: pointer;
+}
+
+.explorer-action-delete {
+  margin-left: 6px;
+  cursor: pointer;
+}
+
+.explorer-divider {
+  height: 8px;
+  background: #222;
+  border-top: 1.5px solid #444;
+}
+
+.explorer-container {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none;
+}
+
+.explorer-empty {
+  color: var(--main-color, #7f7f7f);
+  padding: 16px 0;
+  text-align: center;
+}
+
+/* Context menu styles */
+.explorer-context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--main-bg, #252526);
+  border: 1px solid var(--main-color, #454545);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  padding: 4px 0;
+  min-width: 160px;
+}
+
+.explorer-context-menu > div {
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--main-color, #d4d4d4);
+  font-size: 13px;
+}
+
+.explorer-context-menu > div:hover {
+  background: var(--sidebar-bg, #2a2d2e);
+}
+
+/* Delete confirmation modal */
+.explorer-delete-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-overlay, rgba(0,0,0,0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.explorer-delete-modal-content {
+  background: var(--main-bg, #252526);
+  border: 1px solid var(--main-color, #454545);
+  border-radius: 4px;
+  padding: 16px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.explorer-delete-modal-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--main-color, #d4d4d4);
+}
+
+.explorer-delete-modal-message {
+  margin-bottom: 16px;
+  color: var(--main-color, #d4d4d4);
+}
+
+.explorer-delete-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.explorer-delete-modal-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.explorer-delete-modal-yes {
+  background: var(--error-color, #c42b1c);
+  color: white;
+}
+
+.explorer-delete-modal-yes:hover {
+  background: var(--error-hover-color, #e84f3d);
+}
+
+.explorer-delete-modal-no {
+  background: var(--input-bg, #3c3c43);
+  color: var(--main-color, #d4d4d4);
+}
+
+.explorer-delete-modal-no:hover {
+  background: var(--input-hover-bg, #4a4a52);
+}
+
+/* Add a bottom border that will be visible in the margin area */
+.custom-file-explorer::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--main-color, #2d2d2d);
+  z-index: 10;
+}
+
+/* Add specific highlighting styles */
+.explorer-label .search-highlight {
+  background: #ffe082 !important;
+  color: #c62828 !important;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Ensure CSS variables are defined */
+:root {
+  --input-bg: #ffe082;
+  --input-color: #c62828;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+  --input-bg: #3c3c43;
+  --input-color: #d4d4d4;
+}

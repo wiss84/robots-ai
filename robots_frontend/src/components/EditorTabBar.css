@@ -1,0 +1,65 @@
+.editor-tab-bar {
+  display: flex;
+  background: var(--main-bg, #1e1e1e);
+  border-bottom: 1px solid var(--main-color, #333);
+  height: 35px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  color: var(--main-color, #ccc);
+  border-right: 1px solid var(--main-color, #333);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  position: relative;
+  max-width: 200px;
+}
+
+.editor-tab.active {
+  background: var(--sidebar-bg, #2d2d2d);
+}
+
+.editor-tab:not(.active) {
+  background: var(--main-bg, #252526);
+}
+
+.editor-tab-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.editor-tab-dirty {
+  margin-right: 4px;
+}
+
+.editor-tab-suggestion {
+  margin-right: 4px;
+  color: #ffcc00;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.editor-tab-close {
+  margin-left: 8px;
+  padding: 2px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.editor-tab-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

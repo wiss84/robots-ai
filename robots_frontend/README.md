@@ -92,7 +92,9 @@ create table if not exists public.messages (
   agent_id text not null,
   role text not null,
   content text,
-  created_at timestamp with time zone default now()
+  created_at timestamp with time zone default now(),
+  type text,
+  file_url text
 );
 ```
 

@@ -1,0 +1,38 @@
+.usage-monitor {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 1rem;
+  max-width: 300px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.usage-monitor-title {
+  margin: 0 0 0.5rem 0;
+  color: #856404;
+}
+
+.usage-monitor-message {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.usage-monitor-dismiss-btn {
+  background: transparent;
+  border: 1px solid #856404;
+  color: #856404;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.usage-monitor-dismiss-btn:hover {
+  background: #856404;
+  color: #fff3cd;
+}

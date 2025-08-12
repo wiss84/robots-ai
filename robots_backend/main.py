@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
+from file_create import router as file_create_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,11 @@ from file_upload import router as file_upload_router
 import requests
 import base64
 import traceback
+from websocket_suggestions import router as websocket_suggestions_router
+from websocket_file_changes import router as websocket_file_changes_router
+from project_index import router as project_index_router
+import re
+from rate_limiter import rate_limiter
 
 # Load environment variables
 load_dotenv()
@@ -31,9 +37,18 @@ app = FastAPI(
     version="1.0.0",
     debug=True
 )
+app.include_router(file_create_router)
+app.include_router(websocket_suggestions_router)
+app.include_router(websocket_file_changes_router)
+app.include_router(project_index_router)
 
 # Serve uploaded files as static
-app.mount("/uploaded_files", StaticFiles(directory="uploaded_files"), name="uploaded_files")
+import os
+app.mount(
+    "/uploaded_files",
+    StaticFiles(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files")),
+    name="uploaded_files"
+)
 
 # CORS middleware
 app.add_middleware(
@@ -44,7 +59,9 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
         "http://localhost:4173",  # Vite preview
-        "http://127.0.0.1:4173"
+        "http://127.0.0.1:4173",
+        "ws://localhost:8000",    # WebSocket server
+        "ws://127.0.0.1:8000"     # WebSocket server alternate
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -90,6 +107,7 @@ async def root():
     }
 
 from agent_coding import router as coding_router
+from agent_coding_ask import router as coding_ask_router
 from agent_finance import router as finance_router
 from agent_news import router as news_router
 from agent_realestate import router as realestate_router
@@ -97,6 +115,7 @@ from agent_travel import router as travel_router
 from agent_image_generator import router as image_generator_router
 from agent_shopping import router as shopping_router
 from agent_coding import graph as coding_graph
+from agent_coding_ask import graph as coding_ask_graph
 from agent_finance import graph as finance_graph
 from agent_news import graph as news_graph
 from agent_realestate import graph as realestate_graph
@@ -108,6 +127,7 @@ from agent_games import graph as games_graph
 from summarize import router as summarize_router
 
 app.include_router(coding_router)
+app.include_router(coding_ask_router)
 app.include_router(finance_router)
 app.include_router(news_router)
 app.include_router(realestate_router)
@@ -117,6 +137,9 @@ app.include_router(shopping_router)
 app.include_router(games_router)
 app.include_router(file_upload_router)
 app.include_router(summarize_router)
+app.include_router(websocket_suggestions_router)
+app.include_router(websocket_file_changes_router)
+app.include_router(project_index_router)
 
 def build_multimodal_message(text, image_base64, mime_type='image/webp'):
     """Build a multimodal message for Gemini: text + image."""
@@ -148,8 +171,34 @@ async def chat_with_agent(
         
         print(f"Processing with conversation_id: {conversation_id}")
         
+        # Rate limiting check
+        estimated_tokens = rate_limiter.estimate_tokens(message)
+        model_to_use, delay_message = await rate_limiter.check_and_wait_if_needed(estimated_tokens)
+        
+        # If there's a delay message, inform the frontend to show countdown and auto-retry
+        if delay_message:
+            print(f"Rate limiting: {delay_message}")
+            # If model switch requires summarization, keep existing behavior
+            if "Switched to" in delay_message and "summarized" in delay_message:
+                return ChatResponse(
+                    response=f"🔄 {delay_message}",
+                    conversation_id=conversation_id,
+                    session_id=session_id
+                )
+            else:
+                # Return a standardized waiting message for the client to handle a countdown and auto-retry
+                seconds = getattr(rate_limiter, "delay_when_approaching_limit", 30)
+                return ChatResponse(
+                    response=f"⏳ Waiting {seconds} seconds to avoid rate limits...",
+                    conversation_id=conversation_id,
+                    session_id=session_id
+                )
+        
+        print(f"Using model: {model_to_use}")
+        
         agent_graphs = {
             "coding": coding_graph,
+            "coding-ask": coding_ask_graph,
             "finance": finance_graph,
             "news": news_graph,
             "realestate": realestate_graph,
@@ -165,34 +214,18 @@ async def chat_with_agent(
         
         print(f"Agent {agent_id} found, proceeding...")
         
-        # Detect image URL in message
-        image_url = None
-        import re
-        match = re.search(r"\[Image: (http[s]?://[^\]]+)\]", message)
-        if match:
-            image_url = match.group(1)
-            # Remove the [Image: ...] part from the message
-            message = re.sub(r"\n?\[Image: http[s]?://[^\]]+\]", "", message).strip()
+        # Handle image base64 data
         image_base64 = None
-        mime_type = 'image/webp'
+        mime_type = None
         
-        # Process image if provided
-        if image_url:
-            try:
-                response = requests.get(image_url)
-                response.raise_for_status()
-                image_base64 = base64.b64encode(response.content).decode('utf-8')
-                # Try to detect MIME type
-                content_type = response.headers.get('content-type', 'image/webp')
-                if 'jpeg' in content_type or 'jpg' in content_type:
-                    mime_type = 'image/jpeg'
-                elif 'png' in content_type:
-                    mime_type = 'image/png'
-                elif 'gif' in content_type:
-                    mime_type = 'image/gif'
-            except Exception as e:
-                print(f"Error processing image: {e}")
-                # Continue without image if there's an error
+        # Check for image data in the message
+        match = re.search(r"\[Image: (data:([^;]+);base64,[^\]]+)\]", message)
+        if match:
+            data_url = match.group(1)
+            mime_type = match.group(2)
+            image_base64 = data_url.split('base64,')[1]
+            # Remove the [Image: ...] part from the message
+            message = re.sub(r"\n?\[Image: data:[^;]+;base64,[^\]]+\]", "", message).strip()
         
         # Add user name to message if provided
         if hasattr(chat_request, 'user_name') and chat_request.user_name:
@@ -200,7 +233,32 @@ async def chat_with_agent(
         
         # Add file content to message if provided
         if hasattr(chat_request, 'file_content') and chat_request.file_content:
-            message = f"{message}\n\nFile Content:\n{chat_request.file_content}"
+            if chat_request.file_content.startswith('data:'):
+                # It's base64 data, likely an image
+                try:
+                    data_parts = chat_request.file_content.split(',', 1)
+                    mime_type = data_parts[0].split(':')[1].split(';')[0]
+                    # Use image_base64 only for actual images
+                    if mime_type.startswith('image/'):
+                        image_base64 = data_parts[1]
+                    else:
+                        # For non-image files with base64 content, try to decode
+                        import base64
+                        try:
+                            file_content = base64.b64decode(data_parts[1]).decode('utf-8')
+                            message = f"{message}\n\nFile Content:\n{file_content}"
+                        except:
+                            print("Error decoding base64 file content")
+                except:
+                    print("Error parsing base64 data")
+            else:
+                # Format the file content nicely
+                content_lines = chat_request.file_content.splitlines()
+                if len(content_lines) > 50:  # Truncate very long files
+                    content = '\n'.join(content_lines[:50]) + '\n... (truncated for brevity)'
+                else:
+                    content = chat_request.file_content
+                message = f"{message}\n\nFile Content:\n{content}"
         
         # Load conversation summary into agent memory if provided
         if hasattr(chat_request, 'conversation_summary') and chat_request.conversation_summary:
@@ -245,12 +303,22 @@ async def chat_with_agent(
         print(f"Invoking graph for agent {agent_id}...")
 
         # Invoke the graph
-        result = graph.invoke(state, config=config)
+        result = await graph.ainvoke(state, config=config)
 
         print(f"Graph invocation completed, processing result...")
         
+        # Record the request for rate limiting
+        response_tokens = 0
+        if result and "messages" in result and result["messages"]:
+            last_message = result["messages"][-1]
+            if hasattr(last_message, 'content'):
+                response_tokens = rate_limiter.estimate_tokens(str(last_message.content))
+        
+        rate_limiter.record_request(model_to_use, estimated_tokens + response_tokens)
+        
         # Extract the response
         if result and "messages" in result and result["messages"]:
+            print(f"Graph execution successful with {len(result['messages'])} messages")
             last_message = result["messages"][-1]
             
             # Handle different message types
@@ -275,8 +343,18 @@ async def chat_with_agent(
                     response_content = str(response_content)
             
             # Check if response is empty and provide fallback
-            if not response_content:
-                response_content = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
+            if not response_content or str(response_content).strip() == "":
+                from constants import EMPTY_RESPONSE_MESSAGE
+                print("\n=== EMPTY RESPONSE ANALYSIS ===")
+                print("Graph execution was successful but produced empty content")
+                print(f"Raw result from graph: {result}")
+                if "messages" in result:
+                    print(f"Messages in result: {len(result['messages'])}")
+                    print(f"Last message structure: {vars(result['messages'][-1])}")
+                    print(f"Last message type: {type(result['messages'][-1])}")
+                    print(f"Last message content type: {type(result['messages'][-1].content) if hasattr(result['messages'][-1], 'content') else 'No content attribute'}")
+                print("\nFalling back to default message")
+                response_content = EMPTY_RESPONSE_MESSAGE
             
             print(f"Response content length: {len(response_content)}")
             print(f"Response preview: {response_content[:100]}...")
@@ -305,16 +383,17 @@ async def chat_with_agent(
         traceback.print_exc()
         
         # Handle specific API quota errors
+        from constants import API_QUOTA_ERROR_MESSAGE, RATE_LIMIT_ERROR_MESSAGE
         error_message = str(e)
         if "ResourceExhausted" in error_message or "quota" in error_message.lower():
             return ChatResponse(
-                response="⚠️ **API Quota Exceeded**\n\nI've reached my current usage limit. Please try again in a few minutes, or consider:\n\n• Taking a short break between requests\n• Rephrasing your question more concisely\n• Using a different agent temporarily\n\nThis is a temporary limitation and should resolve shortly.",
+                response=API_QUOTA_ERROR_MESSAGE,
                 conversation_id=conversation_id if 'conversation_id' in locals() else "error",
                 session_id=session_id if 'session_id' in locals() else "error"
             )
         elif "rate limit" in error_message.lower() or "too many requests" in error_message.lower():
             return ChatResponse(
-                response="⚠️ **Rate Limit Reached**\n\nI'm processing too many requests right now. Please wait a moment and try again.",
+                response=RATE_LIMIT_ERROR_MESSAGE,
                 conversation_id=conversation_id if 'conversation_id' in locals() else "error",
                 session_id=session_id if 'session_id' in locals() else "error"
             )
@@ -330,3 +409,8 @@ async def chat_with_agent(
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "timestamp": "2025-01-01T00:00:00Z"}
+
+@app.get("/rate-limit-stats")
+async def get_rate_limit_stats(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current rate limiting statistics"""
+    return rate_limiter.get_usage_stats()

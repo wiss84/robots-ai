@@ -13,15 +13,19 @@ interface Message {
   fileName?: string;
   fileUrl?: string;
 }
-
+ 
 interface ChatMessagesProps {
   messages: Message[];
   loadingMessages: boolean;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
   userName?: string;
   agentName?: string;
   agentId?: string;
   isSummarizing?: boolean;
+
+  // New: support fallback controls
+  conversationId?: string;
+  onContinue?: (convId: string) => void;
 }
 
 // Utility to remove JSON code blocks (and optionally other code blocks) from a string
@@ -35,14 +39,16 @@ function removeMapJsonBlocks(text: string): string {
   return cleaned.trim();
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ 
-  messages, 
-  loadingMessages, 
-  messagesEndRef, 
+const ChatMessages: React.FC<ChatMessagesProps> = ({
+  messages,
+  loadingMessages,
+  messagesEndRef,
   userName = 'You',
   agentName = 'Agent',
   agentId,
-  isSummarizing = false
+  isSummarizing = false,
+  conversationId,
+  onContinue
 }) => (
   <div className="chat-messages">
     {messages.map((msg, idx) => {
@@ -60,77 +66,99 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
       return (
         <div
-          key={msg.fileUrl || msg.content || idx}
+          key={`${msg.fileUrl || msg.content}-${idx}`}
           className={`chat-message ${msg.role === 'user' ? 'user' : 'agent'}`}
         >
           <b className="chat-message-label">{msg.role === 'user' ? userName : agentName}:</b>{' '}
           {/* Render agent message as full markdown, with special image styling for shopping agent */}
           {msg.role === 'agent' ? (
-            <div className="chat-markdown">
-              {agentId === 'coding' ? (
-                // Custom rendering for coding agent: split into text/code parts
-                parseAgentResponse(contentWithoutJson).map((part, i) =>
-                  part.type === 'code' ? (
-                    <CodeBlock key={i} code={part.content} language={part.language} />
-                  ) : (
-                    <div key={i} className="markdown-text-block">
-                      <ReactMarkdown
-                        components={{
-                          a: ({ node, ...props }) => (
-                            <a {...props} target="_blank" rel="noopener noreferrer" />
-                          ),
-                        }}
-                      >
-                        {part.content}
-                      </ReactMarkdown>
-                    </div>
-                  )
-                )
-              ) : (
-                <ReactMarkdown
-                  components={{
-                    a: ({ node, ...props }) => (
-                      <a {...props} target="_blank" rel="noopener noreferrer" />
-                    ),
-                    img: ({ node, ...props }) => (
-                      agentId === 'shopping' ? (
-                        <img
-                          {...props}
-                          className="shopping-product-image-markdown"
-                          alt={props.alt || 'product'}
-                          onError={e => {
-                            if (e.currentTarget.src.endsWith('image-not-found.png')) {
-                              // If fallback also fails, use a transparent pixel
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src =
-                                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
-                            } else {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = '/assets/image-not-found.png';
-                            }
+            // Special system-like inline banners
+            typeof contentWithoutJson === 'string' && contentWithoutJson.startsWith('[[DELAY:') ? (
+              <div className="chat-fallback chat-delay-banner">
+                {contentWithoutJson.replace(/^\[\[DELAY:\d+\]\]\s*/, '')}
+              </div>
+            ) : typeof contentWithoutJson === 'string' && contentWithoutJson.startsWith('[[CONTINUE]]') ? (
+              <div className="chat-fallback chat-continue-banner">
+                <div className="chat-continue-text">
+                  {contentWithoutJson.replace('[[CONTINUE]]', '').trim() || 'Something went wrong. Click Continue to resume the previous task.'}
+                </div>
+                {conversationId && onContinue && (
+                  <button className="chat-continue-button" onClick={() => onContinue(conversationId)}>
+                    Continue
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="chat-markdown">
+                {agentId === 'coding' ? (
+                  // Custom rendering for coding agent: split into text/code parts
+                  parseAgentResponse(contentWithoutJson).map((part, i) =>
+                    part.type === 'code' ? (
+                      <CodeBlock key={i} code={part.content} language={part.language} />
+                    ) : (
+                      <div key={i} className="markdown-text-block">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => (
+                              <a {...props} target="_blank" rel="noopener noreferrer" />
+                            ),
                           }}
-                        />
-                      ) : (
-                        <img {...props} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} alt={props.alt || ''} />
-                      )
+                        >
+                          {part.content}
+                        </ReactMarkdown>
+                      </div>
                     )
-                  }}
-                >
-                  {contentWithoutJson}
-                </ReactMarkdown>
-              )}
-              {/* Only render map for travel and realestate agents */}
-              {(agentId === 'travel' || agentId === 'realestate') && (
-                <MapMessage message={processedContent} />
-              )}
-            </div>
+                  )
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      a: ({ node, ...props }) => (
+                        <a {...props} target="_blank" rel="noopener noreferrer" />
+                      ),
+                      img: ({ node, ...props }) => (
+                        agentId === 'shopping' ? (
+                          <img
+                            {...props}
+                            className="shopping-product-image-markdown"
+                            alt={props.alt || 'product'}
+                            onError={e => {
+                              if (e.currentTarget.src.endsWith('image-not-found.png')) {
+                                // If fallback also fails, use a transparent pixel
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src =
+                                  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+                              } else {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/assets/image-not-found.png';
+                              }
+                            }}
+                          />
+                        ) : (
+                          <img {...props} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} alt={props.alt || ''} />
+                        )
+                      )
+                    }}
+                  >
+                    {contentWithoutJson}
+                  </ReactMarkdown>
+                )}
+                {/* Only render map for travel and realestate agents */}
+                {(agentId === 'travel' || agentId === 'realestate') && (
+                  <MapMessage message={processedContent} />
+                )}
+              </div>
+            )
           ) : (
             <span>{processedContent}</span>
           )}
           {/* Render image if type is image and fileUrl is present */}
           {msg.type === 'image' && msg.fileUrl && (
             <div className="chat-image-message">
-              <img src={msg.fileUrl} alt={msg.fileName || 'uploaded'} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} />
+              <img 
+                src={`http://localhost:8000/project/files/content/${msg.fileUrl.split('/uploaded_files/')[1]}`}
+                alt={msg.fileName || 'uploaded'} 
+                style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} 
+              />
             </div>
           )}
 
@@ -141,24 +169,18 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                 <span className="file-name">{msg.fileName}</span>
                 <div className="file-actions">
                   {msg.fileUrl && (
-                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="file-download">
+                    <a 
+                      href={`http://localhost:8000/project/files/content/${msg.fileUrl.split('/uploaded_files/')[1]}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="file-download"
+                    >
                       Download
                     </a>
                   )}
                   <span className="file-context-status">📄 Available in conversation</span>
                 </div>
               </div>
-              {/* Show file content preview if available */}
-              {msg.content && msg.content.includes('[Uploaded File Content:') && (
-                <div className="file-content-preview">
-                  <details>
-                    <summary>📄 View File Content</summary>
-                    <pre className="file-content">
-                      {msg.content.split('[Uploaded File Content:')[1]?.split(']')[0] || msg.content}
-                    </pre>
-                  </details>
-                </div>
-              )}
             </div>
           )}
         </div>

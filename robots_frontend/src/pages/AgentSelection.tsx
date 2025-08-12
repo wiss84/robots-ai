@@ -240,25 +240,16 @@ function AgentSelection() {
       placeholder="Search agents..."
       value={searchQuery}
       onChange={handleSearchChange}
-      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc', minWidth: 180 }}
     />
   );
 
   return (
     <>
       <Navbar showHomeLink={true} showAgentSelectionLink={false} searchBox={searchBox} />
-      <div className="app" style={{ marginTop: '90px' }}>
+      <div className="app">
         <h1>Select Your Agent</h1>
         {hasError ? (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            height: '50vh',
-            color: '#00bcd4',
-            textAlign: 'center'
-          }}>
+          <div className="agent-selection-error-container">
             <h2>Something went wrong</h2>
             <p>Please refresh the page and try again.</p>
             <button 
@@ -267,15 +258,7 @@ function AgentSelection() {
                 setSearchQuery('');
                 setSelectedIndex(0);
               }}
-              style={{
-                background: '#00bcd4',
-                color: '#121212',
-                border: 'none',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                marginTop: '1rem'
-              }}
+              className="agent-selection-error-button"
             >
               Reset
             </button>
@@ -336,16 +319,7 @@ function AgentSelection() {
                   }
                 })
               ) : (
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  color: '#00bcd4',
-                  fontSize: '1.5rem',
-                  textAlign: 'center',
-                  zIndex: 2
-                }}>
+                <div className="no-agents-found-message">
                   <h3>No agents found</h3>
                   <p>Try a different search term</p>
                 </div>

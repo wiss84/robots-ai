@@ -135,15 +135,35 @@ class FileProcessor:
             else:
                 df = pd.read_excel(file_path)
             
-            # Convert to string with formatting
-            content = df.to_string(index=False)
+            # Generate basic statistics
+            num_rows = len(df)
+            num_cols = len(df.columns)
+            numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+            
+            # Create a concise data preview
+            preview_rows = min(5, num_rows)
+            preview = df.head(preview_rows).to_string()
             
             # Add summary information
-            summary = f"Spreadsheet Summary:\n"
-            summary += f"- Rows: {len(df)}\n"
-            summary += f"- Columns: {len(df.columns)}\n"
-            summary += f"- Column names: {list(df.columns)}\n\n"
-            summary += f"Data:\n{content}"
+            summary = f"Spreadsheet Analysis:\n"
+            summary += f"- Total Rows: {num_rows}\n"
+            summary += f"- Total Columns: {num_cols}\n"
+            summary += f"- Column Names: {', '.join(df.columns)}\n"
+            
+            if numeric_cols.any():
+                summary += "\nNumeric Column Statistics:\n"
+                for col in numeric_cols:
+                    stats = df[col].describe()
+                    summary += f"  {col}:\n"
+                    summary += f"    - Mean: {stats['mean']:.2f}\n"
+                    summary += f"    - Min: {stats['min']:.2f}\n"
+                    summary += f"    - Max: {stats['max']:.2f}\n"
+            
+            summary += f"\nFirst {preview_rows} rows of data:\n{preview}"
+            
+            # For large datasets, indicate truncation
+            if num_rows > preview_rows:
+                summary += f"\n\n(Showing {preview_rows} of {num_rows} total rows)"
             
             return {
                 "content": summary,

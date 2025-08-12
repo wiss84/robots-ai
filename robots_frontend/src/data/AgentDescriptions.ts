@@ -56,8 +56,10 @@ Hello there! 💻 I'm your friendly coding companion, ready to help you build, d
 - 🛠️ Help you write clean, efficient code in a variety of languages
 - 🧩 Debug errors, explain concepts, and offer documentation snippets
 - 🚀 Generate templates or small apps to kickstart your next big idea
+- Click on my agent mode button 🤖 and let me Create, rename, delete and edit your files and folders
+- 🔍✏️ Search, edit your workspace files and provide real-time suggestions on your editor
 
-Just press Proceed, and let's turn your logic into magic! ✨
+Just press Proceed, and let's turn your ideas into codes! ✨
 `,
 
   shopping: `

@@ -1,0 +1,80 @@
+.file-explorer-sidebar {
+  width: 100%;
+  min-width: 48px;
+  background: var(--main-bg, #1e1e1e);
+  color: var(--main-color, #d4d4d4);
+  border-right: none; /* Remove border to avoid double line next to drag handle */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  padding-bottom: 35px; /* Add 35px bottom padding */
+  box-sizing: border-box; /* Ensure padding is included in height */
+}
+
+.file-explorer-sidebar.collapsed {
+  width: 48px;
+  min-width: 48px;
+}
+
+.file-explorer-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.file-explorer-sidebar::after {
+  content: '';
+  position: absolute;
+  bottom: 35px; /* Position above the margin */
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #2d2d2d;
+  z-index: 10;
+}
+
+.sidebar-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--sidebar-bg, #252526);
+  border-bottom: 1px solid var(--main-color, #222);
+  height: 36px;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  color: var(--main-color, #d4d4d4);
+  font-size: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.sidebar-actions button {
+  background: none;
+  border: none;
+  color: var(--main-color, #d4d4d4);
+  font-size: 16px;
+  cursor: pointer;
+  outline: none;
+  padding: 4px;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.sidebar-actions button:hover {
+  background: #37373d;
+}

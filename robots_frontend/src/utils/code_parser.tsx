@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './code_parser.css';
 
 // CodeBlock component with copy button and custom styling
 export const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, language = 'text' }) => {
@@ -17,7 +18,7 @@ export const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code,
   return (
     <div className="custom-code-block-container">
       <div className="custom-code-block-header">
-        <span style={{ fontSize: 12, color: '#b2eaff', fontFamily: 'monospace', flex: 1 }}>{language}</span>
+        <span className="custom-code-block-language">{language}</span>
         <button
           onClick={copyToClipboard}
           className="custom-code-block-copy-btn"

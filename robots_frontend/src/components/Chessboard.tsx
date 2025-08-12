@@ -113,6 +113,12 @@ const ChessboardComponent: React.FC<ChessboardProps> = ({
     return "Your turn";
   };
 
+  // Custom board styles (moved from inline)
+  const customBoardStyle = {
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  };
+
   return (
     <div className="chessboard-container">
       <div className="chessboard-header">
@@ -126,10 +132,7 @@ const ChessboardComponent: React.FC<ChessboardProps> = ({
           onPieceDrop={onDrop}
           onSquareClick={onSquareClick}
           boardWidth={400}
-          customBoardStyle={{
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-          }}
+          customBoardStyle={customBoardStyle}
           customDarkSquareStyle={{ backgroundColor: '#779556' }}
           customLightSquareStyle={{ backgroundColor: '#edeed1' }}
         />
@@ -152,7 +155,6 @@ const ChessboardComponent: React.FC<ChessboardProps> = ({
           <button
             onClick={onClose}
             className="close-button"
-            style={{ marginLeft: '0.5rem', background: '#e53935' }}
           >
             Close Game
           </button>

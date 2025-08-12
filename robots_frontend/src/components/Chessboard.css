@@ -40,6 +40,12 @@
   align-items: center;
 }
 
+/* Custom chessboard styling */
+.custom-chessboard {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .chessboard-controls {
   display: flex;
   justify-content: space-between;
@@ -122,6 +128,28 @@
 }
 
 .reset-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.close-button {
+  padding: 0.5rem 1rem;
+  background: #e53935;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.close-button:hover:not(:disabled) {
+  background: #c62828;
+}
+
+.close-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

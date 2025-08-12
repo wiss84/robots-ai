@@ -1,6 +1,6 @@
 .chat-sidebar {
   width: 260px;
-  transition: width 0.2s;
+  transition: width 0.2s ease;
   background: #181818;
   border-right: 1px solid #222;
   display: flex;
@@ -9,6 +9,7 @@
   padding-top: 16px;
   position: relative;
   min-width: 32px;
+  overflow: hidden;
 }
 .chat-sidebar.closed {
   width: 32px;
@@ -39,12 +40,37 @@
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.2s ease, background 0.2s;
+}
+
+.chat-sidebar.closed .new-chat-btn {
+  opacity: 0;
+  pointer-events: none;
 }
 .new-chat-btn:hover {
   background: #0097a7;
 }
 .conversations-list {
   width: 100%;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.chat-sidebar.closed .conversations-list {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-spacer {
+  flex: 1;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.chat-sidebar.closed .sidebar-spacer {
+  opacity: 0;
 }
 .conversations-title {
   color: #aaa;
@@ -78,6 +104,14 @@ body.light-theme .conversation-item:hover {
   padding: 4px;
 }
 .conversation-dropdown {
+  position: absolute;
+  right: 0;
+  top: 24px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 10;
   min-width: 120px;
 }
 .conversation-menu-btn svg {
@@ -86,4 +120,63 @@ body.light-theme .conversation-item:hover {
 }
 body.light-theme .conversation-menu-btn svg {
   color: #23272f;
+}
+
+/* Additional styles moved from inline styles */
+.conversation-item-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.conversation-item-text {
+  flex: 1;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-rename-form {
+  display: inline;
+}
+
+.conversation-rename-input {
+  width: 120px;
+}
+
+.conversation-menu-container {
+  position: relative;
+}
+
+.conversation-dropdown-button {
+  display: block;
+  width: 100%;
+  padding: 6px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conversation-dropdown-button.delete {
+  color: red;
+}
+
+.show-more-container {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.show-more-button {
+  background: none;
+  border: none;
+  color: #00bcd4;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+}
+
+.sidebar-spacer {
+  flex: 1;
 }

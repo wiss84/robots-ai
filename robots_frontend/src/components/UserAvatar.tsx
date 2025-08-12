@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { createPortal } from 'react-dom';
+import './UserAvatar.css';
 
 interface UserAvatarProps {
   user: User;
@@ -65,37 +66,32 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ user, onSignOut, showThemeToggl
   }, [isDropdownOpen]);
 
   return (
-    <div className="user-avatar-wrapper" ref={avatarRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div className="user-avatar-wrapper" ref={avatarRef}>
       <div
-        className="user-avatar"
+        className="user-avatar user-avatar-button"
         onClick={() => setIsDropdownOpen((open) => !open)}
-        style={{ cursor: 'pointer' }}
       >
         {getInitials()}
       </div>
       {isDropdownOpen && dropdownPos && createPortal(
         <div
-          className="user-dropdown user-dropdown-portal"
+          className="user-dropdown user-dropdown-portal user-avatar-menu"
           ref={dropdownRef}
           style={{
-            position: 'absolute',
             top: dropdownPos.top,
-            left: dropdownPos.left,
-            zIndex: 3000,
-            minWidth: 180
+            left: dropdownPos.left
           }}
         >
-          <div className="user-email" style={{ marginBottom: 8 }}>{user.email}</div>
+          <div className="user-email">{user.email}</div>
           {showThemeToggle && setTheme && (
             <button
-              className="theme-toggle-btn"
-              style={{ width: '100%', margin: '10px 0', fontSize: 18, color: '#00bcd4', background: 'none', border: 'none', cursor: 'pointer' }}
+              className="theme-toggle-btn user-menu-button"
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             >
               {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
             </button>
           )}
-          <button className="signout-btn" style={{ color: 'red', width: '100%', marginTop: 8 }} onClick={handleSignOut}>
+          <button className="signout-btn" onClick={handleSignOut}>
             Sign Out
           </button>
         </div>,

@@ -15,11 +15,16 @@ composio-langchain==0.7.20
 python-dotenv==1.0.1
 pydantic==2.10.6
 httpx==0.28.1
+websockets==15.0.1
+httpx==0.28.1
+jose==1.0.0
+
 
 # CORS & Security
-fastapi-cors==0.0.1
-python-jose[cryptography]==3.3.0
+fastapi-cors==0.0.6
+python-jose==3.5.0
 passlib[bcrypt]==1.7.4
+watchdog==4.0.0
 
 # File Processing Dependencies
 Pillow==10.1.0

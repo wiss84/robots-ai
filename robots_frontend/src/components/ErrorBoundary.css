@@ -1,0 +1,25 @@
+.error-boundary-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  color: #00bcd4;
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-boundary-refresh-btn {
+  background: #00bcd4;
+  color: #121212;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.error-boundary-refresh-btn:hover {
+  background: #0097a7;
+}

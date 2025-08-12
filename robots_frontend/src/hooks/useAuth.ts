@@ -1,11 +1,6 @@
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../supabaseClient';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -34,5 +29,5 @@ export const useAuth = () => {
     }
   };
 
-  return { user, loading, supabase, signOut };
+  return useMemo(() => ({ user, loading, supabase, signOut }), [user, loading]);
 };

@@ -422,6 +422,45 @@ body.light-theme .chat-message-label {
   color: #0097a7;
 }
 
+/* Fallback banners for delays and continue flow */
+.chat-fallback {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin: 8px 0;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.chat-delay-banner {
+  background: #1a2530;
+  border: 1px dashed #0097a7;
+  color: #b2eaff;
+}
+
+.chat-continue-banner {
+  background: rgba(244, 67, 54, 0.08);
+  border: 1px dashed rgba(244, 67, 54, 0.6);
+  color: #ffb3b3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-continue-button {
+  background: #00bcd4;
+  color: #121212;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chat-continue-button:hover {
+  background: #0097a7;
+}
+
 @media (max-width: 600px) {
   .chat-messages {
     max-width: 100vw;

@@ -3,6 +3,12 @@
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin: 10px 0;
+  width: 100%;
+}
+
+.map-leaflet-container {
+  height: 100%;
+  width: 100%;
 }
 
 .custom-marker {
@@ -16,6 +22,39 @@
 
 .custom-marker:hover div {
   transform: scale(1.2);
+}
+
+/* Custom marker styles for different types */
+.custom-marker-dot {
+  width: 20px;
+  height: 20px;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.custom-marker-dot.restaurant {
+  background-color: #ff6b6b;
+}
+
+.custom-marker-dot.hotel {
+  background-color: #4ecdc4;
+}
+
+.custom-marker-dot.shop {
+  background-color: #45b7d1;
+}
+
+.custom-marker-dot.tourism {
+  background-color: #96ceb4;
+}
+
+.custom-marker-dot.amenity {
+  background-color: #feca57;
+}
+
+.custom-marker-dot.default {
+  background-color: #6c5ce7;
 }
 
 /* Leaflet popup styling */

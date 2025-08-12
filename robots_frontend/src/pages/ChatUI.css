@@ -1,10 +1,91 @@
 /*
-  ChatUI.css now only contains global or shared chat styles.
-  Component-specific styles have been moved to:
-    - ChatSidebar.css
-    - ChatMessages.css
-    - ChatInput.css
+  ChatUI.css styles.
 */
+
+/* Auth Required Section */
+.chat-auth-required {
+  text-align: center;
+  background: rgba(0,0,0,0.04);
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.chat-auth-required h2 {
+  margin-bottom: 16px;
+}
+
+.chat-auth-required p {
+  margin-bottom: 24px;
+  color: #888;
+}
+
+.chat-auth-required .button-container {
+  display: flex;
+  justify-content: center;
+}
+
+.chat-auth-required .nav-button {
+  font-size: 18px;
+  padding: 0.7rem 2.2rem;
+}
+
+/* Chess Game Component */
+.chess-game-container {
+  flex: 0 0 auto;
+  width: 450px;
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-left: 2rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Chat Layout Components */
+.chat-container {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* New layout structure for side-by-side chat and chessboard */
+.chat-content-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.chat-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.chat-area > * {
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* Legacy support - keep for backward compatibility */
+.chat-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  gap: 2rem;
+}
+
+.chat-input-inner {
+  flex: 1;
+  min-width: 0;
+}
 
 /*
   Restored from backup for correct layout and appearance
@@ -19,6 +100,8 @@
   top: 0;
   left: 0;
   z-index: 0;
+  min-width: 100vw;
+  overflow: hidden; /* Prevent outer scrollbar */
 }
 
 .chat-main {
@@ -30,8 +113,10 @@
   position: relative;
   margin: 0 auto;
   width: 100%;
-  max-width: 900px;
+  max-width: 1400px; /* Increased to accommodate chessboard */
   height: 100%;
+  min-width: 0;
+  overflow: hidden; /* Prevent scrollbar on main container */
 }
 
 .chat-main.greeting-mode {
@@ -74,6 +159,12 @@
   pointer-events: auto;
 }
 
+@media (max-width: 1200px) {
+  .chess-game-container {
+    width: 350px;
+  }
+}
+
 @media (max-width: 900px) {
   .chat-main,
   .chat-messages,
@@ -89,6 +180,29 @@
   .chat-greeting-header-outer.greeting-mode {
     margin-top: -30px !important;
   }
+  
+  /* Stack chessboard below chat on mobile */
+  .chat-content-wrapper {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .chat-input-wrapper {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .chess-game-container {
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    position: relative;
+    top: 0;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+  }
 }
 
 /* Light theme overrides for chat UI */
@@ -97,7 +211,12 @@ body.light-theme .chat-main,
 body.light-theme .chat-sidebar,
 body.light-theme .chat-header,
 body.light-theme .chat-messages,
-body.light-theme .chat-input-container {
+body.light-theme .chat-input-container,
+body.light-theme .file-explorer-sidebar,
+body.light-theme .sidebar-header,
+body.light-theme .custom-file-explorer,
+body.light-theme .explorer-tree,
+body.light-theme .explorer-search {
   background: #fff !important;
   color: #222 !important;
 }
@@ -112,6 +231,20 @@ body.light-theme .chat-input {
   color: #222 !important;
   background: transparent !important;
 }
+body.light-theme .explorer-context-menu,
+body.light-theme .explorer-delete-modal-content {
+  background: #fff !important;
+  border-color: #ddd !important;
+  color: #222 !important;
+}
+body.light-theme .explorer-context-menu > div,
+body.light-theme .explorer-delete-modal-title,
+body.light-theme .explorer-delete-modal-message,
+body.light-theme .explorer-row,
+body.light-theme .explorer-label,
+body.light-theme .explorer-actions svg {
+  color: #222 !important;
+}
 body.light-theme .chat-attachment-label {
   color: #00bcd4 !important;
 }
@@ -124,7 +257,78 @@ body.light-theme .auth-navbar {
   color: #222 !important;
   border-bottom: 1px solid #eee;
 }
-body.light-theme .home-link {
+body.light-theme .home-link,
+body.light-theme .explorer-icon {
   color: #00bcd4 !important;
+}
+
+/* Light theme overrides for Agent mode UI */
+body.light-theme .collapse-btn,
+body.light-theme .sidebar-actions button,
+body.light-theme .explorer-row.selected,
+body.light-theme .explorer-row:hover {
+  color: #222 !important;
+}
+body.light-theme .sidebar-actions button:hover,
+body.light-theme .explorer-row:hover,
+body.light-theme .explorer-row.selected,
+body.light-theme .explorer-context-menu > div:hover {
+  background: #e0f7fa !important;
+}
+body.light-theme .file-explorer-sidebar::after,
+body.light-theme .custom-file-explorer::after {
+  background-color: #ddd !important;
+}
+body.light-theme .file-explorer-sidebar.collapsed {
+  border-right: 1px solid #ddd !important;
+}
+body.light-theme .explorer-children {
+  border-left: 1px solid #ddd !important;
+}
+body.light-theme .explorer-search input {
+  border: 1px solid #aaa !important;
+  background: #f5f5f5 !important;
+  color: #222 !important;
+}
+body.light-theme .explorer-delete-modal-no {
+  background: #f0f0f0 !important;
+  color: #222 !important;
+}
+body.light-theme .explorer-delete-modal-no:hover {
+  background: #e0e0e0 !important;
+}
+body.light-theme .explorer-delete-modal-yes {
+  background: #f44336 !important;
+}
+body.light-theme .explorer-delete-modal-yes:hover {
+  background: #e53935 !important;
+}
+
+/* Light theme chess container border */
+body.light-theme .chess-game-container {
+  border-left-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+@media (max-width: 900px) {
+  body.light-theme .chess-game-container {
+    border-left: none !important;
+    border-top-color: rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+/* Editor tabs light theme */
+body.light-theme div[style*="background: var(--main-bg, #1e1e1e)"] {
+  background: #f5f5f5 !important;
+  border-bottom: 1px solid #ddd !important;
+}
+body.light-theme div[style*="background: activeTab === tab.path ? 'var(--sidebar-bg, #2d2d2d)' : 'var(--main-bg, #252526)'"]:not([style*="activeTab === tab.path"]) {
+  background: #e0e0e0 !important;
+  color: #222 !important;
+  border-right: 1px solid #ddd !important;
+}
+body.light-theme div[style*="background: activeTab === tab.path ? 'var(--sidebar-bg, #2d2d2d)' : 'var(--main-bg, #252526)'"]:is([style*="activeTab === tab.path"]) {
+  background: #fff !important;
+  color: #222 !important;
+  border-right: 1px solid #ddd !important;
 }
 

@@ -142,10 +142,10 @@ const SignUp = () => {
         <Navbar />
         <div className="auth-container">
           <h2>You're Already Signed In!</h2>
-          <p style={{ textAlign: 'center', color: '#ccc' }}>
+          <p className="auth-text-center">
             Welcome, {user.email}
           </p>
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <div className="auth-button-container">
             <Link to="/" className="nav-button">
               Go to Homepage
             </Link>
@@ -275,9 +275,9 @@ const SignUp = () => {
           </button>
         </form>
         
-        <p style={{ textAlign: 'center', marginTop: '1rem', color: '#ccc' }}>
+        <p className="auth-text-center with-margin">
           Already have an account?{' '}
-          <Link to="/signin" style={{ color: '#00bcd4', textDecoration: 'none' }}>
+          <Link to="/signin" className="auth-link">
             Sign In
           </Link>
         </p>
