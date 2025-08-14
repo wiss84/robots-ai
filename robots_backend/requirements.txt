@@ -38,3 +38,8 @@ requests==2.32.3
 
 # Games Dependencies
 python-chess==1.999
+
+# Code Quality Analyzers
+ruff==0.11.12
+mypy==1.17.1
+pylint==3.3.8

@@ -32,8 +32,17 @@ from enhanced_coding_tools import (
 from subtask_tool import (
     create_task_plan,
     manage_task_progress,
-    get_task_suggestions
+    get_task_suggestions,
+    check_subtask_code_quality,
 )
+
+# Versioning and Code Quality tools
+from versioning_tools import (
+    snapshot_file,
+    list_file_versions,
+    restore_file_version,
+)
+from code_quality_tool import analyze_code_quality, ensure_frontend_configs
 composio_toolset = ComposioToolSet(api_key=os.getenv('COMPOSIO_API_KEY'))
 search_tools = composio_toolset.get_tools(actions=['COMPOSIO_SEARCH_SEARCH'])
 
@@ -72,6 +81,16 @@ tools = [
     create_task_plan,
     manage_task_progress,
     get_task_suggestions,
+ 
+    # Versioning tools
+    snapshot_file,
+    list_file_versions,
+    restore_file_version,
+ 
+    # Code quality
+    check_subtask_code_quality,
+    analyze_code_quality,
+    ensure_frontend_configs,
     
     # Search tool
     search_tools[0],

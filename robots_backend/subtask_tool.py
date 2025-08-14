@@ -4,10 +4,13 @@ This tool allows the agent to create, manage, and track subtasks
 to break down complex tasks.
 """
 
+import os
+import time
 from typing import List, Dict, Optional, Any
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from subtask_manager import get_subtask_manager, TaskStatus
+from code_quality_tool import analyze_code_quality
 
 class CreateTaskPlanInput(BaseModel):
     main_task: str = Field(..., description="Description of the main task to be broken down")
@@ -31,7 +34,8 @@ def create_task_plan(main_task: str, subtasks: List[Dict[str, Any]], conversatio
         {"title": "Analyze requirements", "description": "Review and understand the task requirements"},
         {"title": "Design solution", "description": "Create a technical design for the implementation"},
         {"title": "Implement core logic", "description": "Write the main functionality", "dependencies": ["task_02"]},
-        {"title": "Update documentation", "description": "Document the new functionality"}
+        {"title": "Run code quality checks", "description": "Run linting and type checks; fix reported issues (ruff, mypy, ESLint, tsc, javac) and address duplicate code findings"},
+        {"title": "Update documentation", "description": "Document the new functionality and any decisions taken"}
     ]
     """
     try:
@@ -189,6 +193,154 @@ def manage_task_progress(conversation_id: str, action: str, result: Optional[str
             "error": f"Task management failed: {str(e)}"
         }
 
+class CodeQualityArgs(BaseModel):
+    conversation_id: str = Field(..., description="Conversation ID")
+    file_path: str = Field(..., description="Absolute or project-relative path to the file to analyze")
+    cwd: Optional[str] = Field(None, description="Working directory for analyzers (e.g., project root that contains package.json/tsconfig.json for JS/TS)")
+    language: Optional[str] = Field(None, description="Override language detection: python|typescript|javascript|java")
+    attach_to_task_id: Optional[str] = Field(None, description="Task id to attach results to. Defaults to current task if available.")
+
+@tool("check_subtask_code_quality", args_schema=CodeQualityArgs)
+def check_subtask_code_quality(
+    conversation_id: str,
+    file_path: str,
+    cwd: Optional[str] = None,
+    language: Optional[str] = None,
+    attach_to_task_id: Optional[str] = None,
+) -> dict:
+    """
+    Run code quality analyzers for a file and attach the results to a subtask's metadata.
+
+    Behavior:
+    - Calls analyze_code_quality(file_path, cwd?, language?).
+    - If attach_to_task_id is provided and exists, the results are saved into that task's metadata.
+      Otherwise, if a current task exists, results are saved under that task.
+    - The results are appended to metadata.quality_checks as a list of entries.
+    - Also returns suggested_subtasks: titled, actionable items to add to the plan (e.g., "Fix Python lint issues (Ruff)").
+
+    Returns:
+    - success, issues, suggestions, analyzers, language, counts, suggested_subtasks, and which task (if any) the results were attached to.
+    """
+    try:
+        manager = get_subtask_manager(conversation_id)
+        aq_result = analyze_code_quality(file_path=file_path, cwd=cwd, language=language)
+
+        success = bool(aq_result.get("success"))
+        issues = aq_result.get("issues", []) or []
+        suggestions = aq_result.get("suggestions", []) or []
+        analyzers = aq_result.get("analyzers", []) or []
+        lang = aq_result.get("language")
+
+        # Build counts and titled suggested subtasks based on analyzer results
+        counts: Dict[str, int] = {}
+        for iss in issues:
+            tool = (iss.get("tool") or "").lower()
+            if tool:
+                counts[tool] = counts.get(tool, 0) + 1
+
+        suggested_subtasks: List[Dict[str, str]] = []
+
+        def add_subtask(title: str, desc: str):
+            suggested_subtasks.append({"title": title, "description": desc})
+
+        if counts.get("ruff"):
+            add_subtask(
+                f"Fix Python lint issues (Ruff) [{counts['ruff']}]",
+                "Resolve style, unused variables/imports, and other Ruff findings."
+            )
+        if counts.get("mypy"):
+            add_subtask(
+                f"Resolve Python type errors (Mypy) [{counts['mypy']}]",
+                "Fix type mismatches and missing annotations reported by Mypy."
+            )
+        if counts.get("eslint"):
+            add_subtask(
+                f"Fix JS/TS lint issues (ESLint) [{counts['eslint']}]",
+                "Address ESLint violations (unused variables, no-undef, stylistic problems)."
+            )
+        if counts.get("tsc"):
+            add_subtask(
+                f"Resolve TypeScript type errors (tsc) [{counts['tsc']}]",
+                "Fix ts compiler errors by adjusting types, interfaces, or generics."
+            )
+        if counts.get("javac"):
+            add_subtask(
+                f"Fix Java compile diagnostics (javac -Xlint) [{counts['javac']}]",
+                "Resolve compiler errors/warnings and improve code robustness."
+            )
+        # Python duplicate-code via pylint R0801
+        if counts.get("pylint"):
+            add_subtask(
+                f"Address Python duplicate code (Pylint R0801) [{counts['pylint']}]",
+                "Refactor duplicated blocks into shared functions/modules to reduce repetition."
+            )
+        # Cross-language duplicate detection via jscpd
+        if counts.get("jscpd"):
+            add_subtask(
+                f"Address cross-language duplicate code (jscpd) [{counts['jscpd']}]",
+                "Refactor duplicate fragments across files/languages into reusable units."
+            )
+
+        # If analyzers are missing, surface a setup task
+        if not issues and suggestions:
+            add_subtask(
+                "Install/configure analyzers",
+                "Install or configure recommended analyzers (ruff, mypy, ESLint, TypeScript, jscpd, JDK) per suggestions."
+            )
+
+        attached_to: Optional[str] = None
+        target_task_id: Optional[str] = None
+
+        if manager:
+            # Choose target task
+            if attach_to_task_id and attach_to_task_id in getattr(manager, "tasks", {}):
+                target_task_id = attach_to_task_id
+            else:
+                current = manager.get_current_task()
+                if current:
+                    target_task_id = current.id
+
+            # Attach results to task metadata
+            if target_task_id and target_task_id in manager.tasks:
+                task = manager.tasks[target_task_id]
+                qlist = task.metadata.get("quality_checks", [])
+                qlist.append({
+                    "timestamp": time.time(),
+                    "file_path": os.path.abspath(file_path),
+                    "cwd": cwd,
+                    "language": lang,
+                    "issues": issues,
+                    "suggestions": suggestions,
+                    "analyzers": analyzers,
+                })
+                task.metadata["quality_checks"] = qlist
+                attached_to = target_task_id
+                # Persist
+                try:
+                    manager._save_tasks()  # best-effort; method is intentionally internal
+                except Exception:
+                    pass
+
+        return {
+            "success": success,
+            "conversation_id": conversation_id,
+            "file_path": os.path.abspath(file_path),
+            "language": lang,
+            "issues": issues,
+            "issue_count": len(issues),
+            "suggestions": suggestions,
+            "analyzers": analyzers,
+            "counts": counts,
+            "suggested_subtasks": suggested_subtasks,
+            "attached_to_task_id": attached_to,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Code quality check failed: {str(e)}",
+            "conversation_id": conversation_id,
+        }
+
 @tool("get_task_suggestions")
 def get_task_suggestions(task_description: str) -> dict:
     """
@@ -205,6 +357,7 @@ def get_task_suggestions(task_description: str) -> dict:
                 {"title": "Implement core functionality", "description": "Build the main features and logic"},
                 {"title": "Add styling", "description": "Implement the visual design and responsive layout"},
                 {"title": "Optimize performance", "description": "Review and optimize for performance"},
+                {"title": "Run code quality checks", "description": "Run linting and type checks; fix reported issues (ruff, mypy, ESLint, tsc, javac) and address duplicate code findings"},
                 {"title": "Update documentation", "description": "Document the implementation and usage"}
             ],
             "api_development": [
@@ -213,6 +366,7 @@ def get_task_suggestions(task_description: str) -> dict:
                 {"title": "Implement endpoints", "description": "Build the API endpoints and business logic"},
                 {"title": "Add authentication", "description": "Implement user authentication and authorization"},
                 {"title": "Add validation", "description": "Implement input validation and error handling"},
+                {"title": "Run code quality checks", "description": "Run linting and type checks; fix reported issues (ruff, mypy, ESLint, tsc, javac) and address duplicate code findings"},
                 {"title": "Add documentation", "description": "Create API documentation"}
             ],
             "bug_fix": [
@@ -220,11 +374,13 @@ def get_task_suggestions(task_description: str) -> dict:
                 {"title": "Analyze root cause", "description": "Investigate the code to find the root cause"},
                 {"title": "Design solution", "description": "Plan the fix approach and consider side effects"},
                 {"title": "Implement fix", "description": "Apply the fix to the codebase"},
+                {"title": "Run code quality checks", "description": "Run linting and type checks; fix reported issues (ruff, mypy, ESLint, tsc, javac) and address duplicate code findings"}
             ],
             "refactoring": [
                 {"title": "Analyze current code", "description": "Review the existing code structure and identify issues"},
                 {"title": "Plan refactoring approach", "description": "Design the new structure and migration strategy"},
                 {"title": "Refactor incrementally", "description": "Apply changes in small, manageable steps"},
+                {"title": "Run code quality checks", "description": "Run linting and type checks; fix reported issues (ruff, mypy, ESLint, tsc, javac) and address duplicate code findings"},
                 {"title": "Update documentation", "description": "Update docs to reflect the new structure"}
             ]
         }
