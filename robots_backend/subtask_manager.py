@@ -7,6 +7,7 @@ and track progress through them systematically.
 import json
 import os
 import time
+import shutil
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
@@ -43,16 +44,41 @@ class SubTaskManager:
         self.tasks: Dict[str, SubTask] = {}
         self.task_order: List[str] = []
         self.current_task_id: Optional[str] = None
-        self.storage_file = f"subtasks_{conversation_id}.json"
+
+        # Persist subtasks under project-root 'task_management' to avoid backend hot-reload
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(base_dir, os.pardir))
+        storage_dir = os.path.join(project_root, "task_management")
+        os.makedirs(storage_dir, exist_ok=True)
+
+        self.storage_file = os.path.join(storage_dir, f"subtasks_{conversation_id}.json")
         self._load_tasks()
     
     def _load_tasks(self):
         """Load tasks from persistent storage."""
         try:
+            # Migrate legacy storage locations if needed
+            if not os.path.exists(self.storage_file):
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.abspath(os.path.join(base_dir, os.pardir))
+                legacy_candidates = [
+                    os.path.join(base_dir, f"subtasks_{self.conversation_id}.json"),
+                    os.path.join(project_root, f"subtasks_{self.conversation_id}.json"),
+                ]
+                for legacy_path in legacy_candidates:
+                    try:
+                        if os.path.exists(legacy_path):
+                            os.makedirs(os.path.dirname(self.storage_file), exist_ok=True)
+                            # Move legacy file to new location
+                            shutil.move(legacy_path, self.storage_file)
+                            break
+                    except Exception as move_err:
+                        print(f"Could not migrate legacy subtask file from {legacy_path}: {move_err}")
+
             if os.path.exists(self.storage_file):
                 with open(self.storage_file, 'r') as f:
                     data = json.load(f)
-                    
+
                 for task_data in data.get('tasks', []):
                     task = SubTask(
                         id=task_data['id'],
@@ -68,10 +94,10 @@ class SubTaskManager:
                         metadata=task_data.get('metadata', {})
                     )
                     self.tasks[task.id] = task
-                
+
                 self.task_order = data.get('task_order', [])
                 self.current_task_id = data.get('current_task_id')
-                
+
         except Exception as e:
             print(f"Could not load subtasks: {e}")
     
@@ -298,8 +324,24 @@ class SubTaskManager:
     def cleanup(self):
         """Clean up task files."""
         try:
+            # Remove current storage file
             if os.path.exists(self.storage_file):
                 os.remove(self.storage_file)
+
+            # Also remove any legacy files left behind
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(base_dir, os.pardir))
+            legacy_candidates = [
+                os.path.join(base_dir, f"subtasks_{self.conversation_id}.json"),
+                os.path.join(project_root, f"subtasks_{self.conversation_id}.json"),
+            ]
+            for legacy_path in legacy_candidates:
+                try:
+                    if os.path.exists(legacy_path):
+                        os.remove(legacy_path)
+                except Exception:
+                    # Best-effort cleanup; ignore failures here
+                    pass
         except Exception as e:
             print(f"Could not cleanup subtask file: {e}")
 

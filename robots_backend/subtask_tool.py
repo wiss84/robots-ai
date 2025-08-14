@@ -31,7 +31,6 @@ def create_task_plan(main_task: str, subtasks: List[Dict[str, Any]], conversatio
         {"title": "Analyze requirements", "description": "Review and understand the task requirements"},
         {"title": "Design solution", "description": "Create a technical design for the implementation"},
         {"title": "Implement core logic", "description": "Write the main functionality", "dependencies": ["task_02"]},
-        {"title": "Add tests", "description": "Create unit tests for the implementation"},
         {"title": "Update documentation", "description": "Document the new functionality"}
     ]
     """
@@ -205,7 +204,6 @@ def get_task_suggestions(task_description: str) -> dict:
                 {"title": "Design components", "description": "Plan the component architecture and data flow"},
                 {"title": "Implement core functionality", "description": "Build the main features and logic"},
                 {"title": "Add styling", "description": "Implement the visual design and responsive layout"},
-                {"title": "Add tests", "description": "Create unit and integration tests"},
                 {"title": "Optimize performance", "description": "Review and optimize for performance"},
                 {"title": "Update documentation", "description": "Document the implementation and usage"}
             ],
@@ -215,7 +213,6 @@ def get_task_suggestions(task_description: str) -> dict:
                 {"title": "Implement endpoints", "description": "Build the API endpoints and business logic"},
                 {"title": "Add authentication", "description": "Implement user authentication and authorization"},
                 {"title": "Add validation", "description": "Implement input validation and error handling"},
-                {"title": "Write tests", "description": "Create comprehensive API tests"},
                 {"title": "Add documentation", "description": "Create API documentation"}
             ],
             "bug_fix": [
@@ -223,15 +220,11 @@ def get_task_suggestions(task_description: str) -> dict:
                 {"title": "Analyze root cause", "description": "Investigate the code to find the root cause"},
                 {"title": "Design solution", "description": "Plan the fix approach and consider side effects"},
                 {"title": "Implement fix", "description": "Apply the fix to the codebase"},
-                {"title": "Test the fix", "description": "Verify the fix works and doesn't break other functionality"},
-                {"title": "Update tests", "description": "Add or update tests to prevent regression"}
             ],
             "refactoring": [
                 {"title": "Analyze current code", "description": "Review the existing code structure and identify issues"},
                 {"title": "Plan refactoring approach", "description": "Design the new structure and migration strategy"},
-                {"title": "Create tests", "description": "Ensure comprehensive test coverage before refactoring"},
                 {"title": "Refactor incrementally", "description": "Apply changes in small, manageable steps"},
-                {"title": "Verify functionality", "description": "Test that all functionality still works correctly"},
                 {"title": "Update documentation", "description": "Update docs to reflect the new structure"}
             ]
         }

@@ -213,10 +213,12 @@ def ask_coding_agent(
     if not conversation_id:
         conversation_id = f"thread_{int(time.time())}"
     
-    config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 50}
+    config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 500}
     
-    # Create initial state
-    state = {"messages": [HumanMessage(content=message)]}
+    # Create initial state with explicit conversation context for tool calls
+    system_prompt = get_system_prompt()
+    conversation_context = SystemMessage(content=f"[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments.")
+    state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=message)]}
     
     try:
         result = graph.invoke(state, config=config)
@@ -284,9 +286,12 @@ async def ask_coding_agent_stream(
 
         config = {
             "configurable": {"thread_id": conversation_id},
-            "recursion_limit": 50
+            "recursion_limit": 500
         }
-        state = {"messages": [HumanMessage(content=message)]}
+        # Create initial state with explicit conversation context for tool calls
+        system_prompt = get_system_prompt()
+        conversation_context = SystemMessage(content=f"[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments.")
+        state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=message)]}
 
         async def event_generator():
             try:

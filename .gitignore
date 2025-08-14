@@ -298,3 +298,5 @@ config.json
 
 # Uploaded files
 uploaded_files/
+# Task management runtime data
+task_management/
