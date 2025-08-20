@@ -47,11 +47,31 @@ def _detect_language(path: str, override: Optional[str]) -> Optional[str]:
     return SUPPORTED_LANGS.get(ext)
 
 
+def _workspace_root() -> str:
+    # Always use uploaded workspace as project root (see project_index.PROJECT_ROOT)
+    return os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace"))
+
 def _norm_path(path: str, cwd: Optional[str]) -> str:
-    if os.path.isabs(path):
-        return path
-    base = cwd or os.getcwd()
-    return os.path.abspath(os.path.join(base, path))
+    # Resolve to workspace root by default, honoring provided cwd when given.
+    p = os.path.normpath(os.path.expanduser(str(path).strip()))
+    if os.path.isabs(p):
+        return os.path.abspath(p)
+
+    # Support inputs prefixed with '/uploaded_files/workspace'
+    normalized = p.replace("\\", "/")
+    prefixes = [
+        "uploaded_files/workspace",
+        "robots_backend/uploaded_files/workspace",
+        "/uploaded_files/workspace",
+        "\\uploaded_files\\workspace",
+    ]
+    for pref in prefixes:
+        if normalized.lower().startswith(pref.replace("\\", "/").lower()):
+            p = normalized[len(pref):].lstrip("\\/") if len(normalized) >= len(pref) else ""
+            break
+
+    base = os.path.abspath(cwd) if cwd else _workspace_root()
+    return os.path.abspath(os.path.join(base, p))
 
 
 def _run(cmd: List[str] | str, cwd: Optional[str] = None, timeout: int = 90) -> Tuple[int, str, str]:
@@ -520,8 +540,9 @@ def analyze_code_quality(file_path: str, cwd: Optional[str] = None, language: Op
     """
     try:
         abs_path = _norm_path(file_path, cwd)
+        effective_cwd = os.path.abspath(cwd) if cwd else _workspace_root()
         if not os.path.exists(abs_path):
-            return {"success": False, "error": f"File not found: {abs_path}"}
+            return {"success": False, "error": f"File not found: {file_path} (resolved: {abs_path})"}
 
         lang = _detect_language(abs_path, language)
         if not lang:
@@ -532,22 +553,22 @@ def analyze_code_quality(file_path: str, cwd: Optional[str] = None, language: Op
 
         # Language-specific analyzers
         if lang == "python":
-            i, s = _analyze_python(abs_path, cwd)
+            i, s = _analyze_python(abs_path, effective_cwd)
             issues.extend(i); suggestions.extend(s)
             # Python duplicate detection (R0801)
-            dup_i, dup_s = _analyze_python_duplicates(abs_path, cwd)
+            dup_i, dup_s = _analyze_python_duplicates(abs_path, effective_cwd)
             issues.extend(dup_i); suggestions.extend(dup_s)
         elif lang in ("typescript", "javascript"):
-            i, s = _analyze_ts_js(abs_path, cwd)
+            i, s = _analyze_ts_js(abs_path, effective_cwd)
             issues.extend(i); suggestions.extend(s)
         elif lang == "java":
-            i, s = _analyze_java(abs_path, cwd)
+            i, s = _analyze_java(abs_path, effective_cwd)
             issues.extend(i); suggestions.extend(s)
         else:
             return {"success": False, "error": f"Language not supported: {lang}"}
 
         # Cross-language duplicate detection (only on the local subtree; filter to target file)
-        j_i, j_s = _analyze_jscpd_for_file(abs_path, cwd)
+        j_i, j_s = _analyze_jscpd_for_file(abs_path, effective_cwd)
         issues.extend(j_i); suggestions.extend(j_s)
 
         # Sort issues by severity heuristic
@@ -587,7 +608,7 @@ def ensure_frontend_configs(root_dir: Optional[str] = None) -> dict:
     Ensure minimal ESLint and TypeScript configs exist for a JS/TS project.
 
     Behavior:
-    - Target directory is root_dir if provided; otherwise, the backend project root.
+    - Target directory is root_dir if provided; otherwise, the uploaded workspace root.
     - Creates tsconfig.json if missing (strict, noEmit, noUnused*).
     - Creates eslint.config.js (flat config using @typescript-eslint) if missing.
       Existing configs are left untouched.
@@ -595,8 +616,8 @@ def ensure_frontend_configs(root_dir: Optional[str] = None) -> dict:
     Returns created and skipped file lists.
     """
     try:
-        project_root = _project_root()
-        frontend_root = os.path.abspath(root_dir) if root_dir else project_root
+        workspace_root = _workspace_root()
+        frontend_root = os.path.abspath(root_dir) if root_dir else workspace_root
 
         created: list[str] = []
         skipped: list[str] = []

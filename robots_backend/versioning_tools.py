@@ -23,6 +23,33 @@ def _versions_root() -> str:
     os.makedirs(root, exist_ok=True)
     return root
 
+def _workspace_root() -> str:
+    # Match project_index.PROJECT_ROOT without importing (to avoid side effects)
+    return os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace"))
+
+def _resolve_input_path(path: str) -> str:
+    # Normalize and resolve to workspace root if relative. Accept absolute paths as-is.
+    p = os.path.normpath(os.path.expanduser(str(path).strip())).lstrip("\\/")
+    if os.path.isabs(p):
+        return os.path.abspath(p)
+
+    # Support inputs that include '/uploaded_files/workspace' prefix
+    normalized = p.replace("\\", "/")
+    prefixes = [
+        "uploaded_files/workspace",
+        "robots_backend/uploaded_files/workspace",
+        "/uploaded_files/workspace",
+        "\\uploaded_files\\workspace",
+    ]
+    for pref in prefixes:
+        if normalized.lower().startswith(pref.replace("\\", "/").lower()):
+            # Strip the prefix and any remaining leading slashes
+            p = normalized[len(pref):].lstrip("\\/") if len(normalized) >= len(pref) else ""
+            break
+
+    resolved = os.path.abspath(os.path.join(_workspace_root(), p))
+    return resolved
+
 def _safe_file_id(path: str) -> str:
     # Normalize to absolute path and hash
     abspath = os.path.abspath(path)
@@ -90,21 +117,24 @@ class RestoreInput(BaseModel):
 def snapshot_file(file_path: str, conversation_id: Optional[str] = None, note: Optional[str] = None) -> dict:
     """
     Create a point-in-time snapshot of a file that can be restored later.
+    Resolves relative paths against the uploaded workspace root.
     """
     try:
-        if not os.path.exists(file_path):
-            return {"success": False, "error": f"File not found: {file_path}"}
+        resolved_path = _resolve_input_path(file_path)
 
-        with open(file_path, "rb") as f:
+        if not os.path.exists(resolved_path):
+            return {"success": False, "error": f"File not found: {file_path} (resolved: {resolved_path})"}
+
+        with open(resolved_path, "rb") as f:
             content = f.read()
 
         version_id = _new_version_id(content)
-        dest_path = _version_path(file_path, version_id)
+        dest_path = _version_path(resolved_path, version_id)
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         with open(dest_path, "wb") as f:
             f.write(content)
 
-        meta = _load_metadata(file_path)
+        meta = _load_metadata(resolved_path)
         meta["versions"].append({
             "version_id": version_id,
             "timestamp": time.time(),
@@ -113,11 +143,11 @@ def snapshot_file(file_path: str, conversation_id: Optional[str] = None, note: O
             "note": note,
             "path": dest_path
         })
-        _save_metadata(file_path, meta)
+        _save_metadata(resolved_path, meta)
 
         return {
             "success": True,
-            "file_path": os.path.abspath(file_path),
+            "file_path": os.path.abspath(resolved_path),
             "version_id": version_id,
             "snapshot_path": dest_path,
             "total_versions": len(meta["versions"])
@@ -129,13 +159,15 @@ def snapshot_file(file_path: str, conversation_id: Optional[str] = None, note: O
 def list_file_versions(file_path: str) -> dict:
     """
     List available versions for a file (most recent first).
+    Resolves relative paths against the uploaded workspace root.
     """
     try:
-        meta = _load_metadata(file_path)
+        resolved_path = _resolve_input_path(file_path)
+        meta = _load_metadata(resolved_path)
         versions = list(reversed(meta.get("versions", [])))
         return {
             "success": True,
-            "file_path": os.path.abspath(file_path),
+            "file_path": os.path.abspath(resolved_path),
             "versions": versions
         }
     except Exception as e:
@@ -145,9 +177,12 @@ def list_file_versions(file_path: str) -> dict:
 def restore_file_version(file_path: str, version_id: str, create_backup_before_restore: bool = True) -> dict:
     """
     Restore a file to a previous version. Optionally snapshots the current file first.
+    Resolves relative paths against the uploaded workspace root.
     """
     try:
-        meta = _load_metadata(file_path)
+        resolved_path = _resolve_input_path(file_path)
+
+        meta = _load_metadata(resolved_path)
         match = None
         for v in meta.get("versions", []):
             if v.get("version_id") == version_id:
@@ -156,26 +191,26 @@ def restore_file_version(file_path: str, version_id: str, create_backup_before_r
         if not match:
             return {"success": False, "error": f"Version not found: {version_id}"}
 
-        if create_backup_before_restore and os.path.exists(file_path):
+        if create_backup_before_restore and os.path.exists(resolved_path):
             # best effort snapshot of current state
             try:
-                snapshot_file(file_path=file_path, conversation_id=None, note=f"Auto-backup before restore to {version_id}")
+                snapshot_file(file_path=resolved_path, conversation_id=None, note=f"Auto-backup before restore to {version_id}")
             except Exception:
                 pass
 
-        source_path = _version_path(file_path, version_id)
+        source_path = _version_path(resolved_path, version_id)
         if not os.path.exists(source_path):
             return {"success": False, "error": f"Stored version content missing: {source_path}"}
 
         # Ensure destination directory exists
-        os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+        os.makedirs(os.path.dirname(os.path.abspath(resolved_path)), exist_ok=True)
         # Restore
-        with open(source_path, "rb") as sf, open(file_path, "wb") as df:
+        with open(source_path, "rb") as sf, open(resolved_path, "wb") as df:
             df.write(sf.read())
 
         return {
             "success": True,
-            "file_path": os.path.abspath(file_path),
+            "file_path": os.path.abspath(resolved_path),
             "restored_version_id": version_id
         }
     except Exception as e:
