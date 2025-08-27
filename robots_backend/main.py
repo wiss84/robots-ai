@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import ORJSONResponse
 from file_create import router as file_create_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -25,17 +26,13 @@ from rate_limiter import rate_limiter
 # Load environment variables
 load_dotenv()
 
-# Global variables (will be replaced with proper initialization)
-agents = {}
-memory_store = None
-vector_store = None
-
 # Initialize FastAPI app (lifespan removed)
 app = FastAPI(
     title="LangGraph Agents Backend",
     description="Multi-agent system with memory and RAG",
     version="1.0.0",
-    debug=True
+    debug=True,
+    default_response_class=ORJSONResponse
 )
 app.include_router(file_create_router)
 app.include_router(websocket_suggestions_router)
@@ -298,7 +295,7 @@ async def chat_with_agent(
         state = {"messages": [human_message]}
 
         # Configure the graph with conversation history
-        config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 50}
+        config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 60}
 
         print(f"Invoking graph for agent {agent_id}...")
 

@@ -6,6 +6,163 @@ import MapMessage from './MapMessage';
 import { autoWrapJsonResponse } from '../utils/mapDataParser';
 import { CodeBlock, parseAgentResponse } from '../utils/code_parser';
 
+// Utility function to safely extract text content from React children
+const extractTextContent = (children: React.ReactNode): string => {
+  try {
+    if (typeof children === 'string') {
+      return children;
+    }
+    if (Array.isArray(children)) {
+      return children.map(child => extractTextContent(child)).join('');
+    }
+    if (React.isValidElement(children) && (children.props as any)?.children) {
+      return extractTextContent((children.props as any).children);
+    }
+    return '';
+  } catch (error) {
+    console.error('Error extracting text content:', error);
+    return '';
+  }
+};
+
+// Citation parsing utilities (moved outside component for reuse)
+const parseCitations = (text: string) => {
+  try {
+    const citationRegex = new RegExp('<cite>\\[Source:\\s*([^\\]]+)\\]</cite>', 'g');
+    const parts: Array<{type: string, content: string, index?: number, key: string}> = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let citationIndex = 1;
+
+    while ((match = citationRegex.exec(text)) !== null) {
+      // Add text before citation
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.slice(lastIndex, match.index),
+          key: `text-${parts.length}`
+        });
+      }
+
+      // Add citation
+      const url = match[1]?.trim();
+      if (url) {
+        parts.push({
+          type: 'citation',
+          content: url,
+          index: citationIndex++,
+          key: `citation-${parts.length}`
+        });
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.slice(lastIndex),
+        key: `text-${parts.length}`
+      });
+    }
+
+    return parts;
+  } catch (error) {
+    console.error('Error parsing citations:', error);
+    // Fallback: return the original text as a single text part
+    return [{
+      type: 'text',
+      content: text,
+      key: 'fallback-text'
+    }];
+  }
+};
+
+const parseMultipleCitations = (text: string) => {
+  try {
+    const multipleCitationRegex = new RegExp('<cite>\\[Sources:\\s*([^\\]]+)\\]</cite>', 'g');
+    let processedText = text;
+
+    processedText = processedText.replace(multipleCitationRegex, (_match, urls) => {
+      try {
+        const urlList = urls.split(',').map((url: string, _index: number) =>
+          `<cite>[Source: ${url.trim()}]</cite>`
+        );
+        return urlList.join(' ');
+      } catch (error) {
+        console.error('Error processing multiple citations:', error);
+        return _match; // Return original match if processing fails
+      }
+    });
+
+    return parseCitations(processedText);
+  } catch (error) {
+    console.error('Error parsing multiple citations:', error);
+    // Fallback: return the original text as a single text part
+    return [{
+      type: 'text',
+      content: text,
+      key: 'fallback-text'
+    }];
+  }
+};
+
+const renderCitationParts = (parts: Array<{type: string, content: string, index?: number, key: string}>) => {
+  try {
+    return parts.map((part) => {
+      try {
+        if (part.type === 'text') {
+          return <span key={part.key}>{part.content || ''}</span>;
+        } else if (part.type === 'citation') {
+          const url = part.content || '';
+          const href = url.startsWith('http') ? url : `https://${url}`;
+          return (
+            <sup key={part.key} className="citation">
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="citation-link"
+                title={`Source: ${url}`}
+              >
+                [{part.index || '?'}]
+              </a>
+            </sup>
+          );
+        }
+        return null;
+      } catch (error) {
+        console.error('Error rendering citation part:', error, part);
+        return <span key={part.key || 'error'}>{part.content || '[Error rendering citation]'}</span>;
+      }
+    });
+  } catch (error) {
+    console.error('Error rendering citation parts:', error);
+    return [<span key="error">Error rendering citations</span>];
+  }
+};
+
+// Citation parsing utility component
+const CitationText: React.FC<{ text: string }> = ({ text }) => {
+  try {
+    const parts = parseMultipleCitations(text);
+
+    return (
+      <div className="citation-content">
+        {renderCitationParts(parts)}
+      </div>
+    );
+  } catch (error) {
+    console.error('Error in CitationText component:', error);
+    return (
+      <div className="citation-content">
+        <span>{text}</span>
+      </div>
+    );
+  }
+};
+
 interface Message {
   role: string;
   type?: 'text' | 'image' | 'file';
@@ -136,7 +293,108 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                         ) : (
                           <img {...props} style={{ maxWidth: 500, maxHeight: 500, borderRadius: 8, margin: '8px 0' }} alt={props.alt || ''} />
                         )
-                      )
+                      ),
+                      // Custom components to handle citations in various markdown elements
+                      p: ({ node, children, ...props }) => {
+                        // Extract text content safely to check for citations
+                        const content = extractTextContent(children);
+                        // Check if content contains citation tags and has actual citation content
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          return <CitationText text={content} />;
+                        }
+                        return <p {...props}>{children}</p>;
+                      },
+                      // Handle citations in list items
+                      li: ({ node, children, ...props }) => {
+                        // Extract text content safely to check for citations
+                        const content = extractTextContent(children);
+                        // Check if content contains citation tags and has actual citation content
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          // Parse citations and render parts directly without wrapper div
+                          const parts = parseMultipleCitations(content);
+                          return (
+                            <li {...props}>
+                              {renderCitationParts(parts)}
+                            </li>
+                          );
+                        }
+                        return <li {...props}>{children}</li>;
+                      },
+                      // Handle citations in headings
+                      h1: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <h1 {...props}>{renderCitationParts(parts)}</h1>;
+                        }
+                        return <h1 {...props}>{children}</h1>;
+                      },
+                      h2: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <h2 {...props}>{renderCitationParts(parts)}</h2>;
+                        }
+                        return <h2 {...props}>{children}</h2>;
+                      },
+                      h3: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <h3 {...props}>{renderCitationParts(parts)}</h3>;
+                        }
+                        return <h3 {...props}>{children}</h3>;
+                      },
+                      h4: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <h4 {...props}>{renderCitationParts(parts)}</h4>;
+                        }
+                        return <h4 {...props}>{children}</h4>;
+                      },
+                      h5: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <h5 {...props}>{renderCitationParts(parts)}</h5>;
+                        }
+                        return <h5 {...props}>{children}</h5>;
+                      },
+                      h6: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <h6 {...props}>{renderCitationParts(parts)}</h6>;
+                        }
+                        return <h6 {...props}>{children}</h6>;
+                      },
+                      // Handle citations in blockquotes
+                      blockquote: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <blockquote {...props}>{renderCitationParts(parts)}</blockquote>;
+                        }
+                        return <blockquote {...props}>{children}</blockquote>;
+                      },
+                      // Handle citations in table cells
+                      td: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <td {...props}>{renderCitationParts(parts)}</td>;
+                        }
+                        return <td {...props}>{children}</td>;
+                      },
+                      th: ({ node, children, ...props }) => {
+                        const content = extractTextContent(children);
+                        if (content.includes('<cite>[') && content.includes('</cite>')) {
+                          const parts = parseMultipleCitations(content);
+                          return <th {...props}>{renderCitationParts(parts)}</th>;
+                        }
+                        return <th {...props}>{children}</th>;
+                      }
                     }}
                   >
                     {contentWithoutJson}

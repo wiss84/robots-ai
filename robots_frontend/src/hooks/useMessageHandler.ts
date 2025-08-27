@@ -156,12 +156,12 @@ export const useMessageHandler = ({
         console.log('Sending conversation summary with first message:', conversationSummary.substring(0, 100) + '...');
       }
       
-// If coding agent, use streaming endpoint
-if (agentId === 'coding') {
+// If coding, finance, or news agent, use streaming endpoint
+if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
   try {
     setPose('thinking');
 
-    const streamRes = await fetch('http://localhost:8000/coding/ask/stream', {
+    const streamRes = await fetch(`http://localhost:8000/${agentId}/ask/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -703,10 +703,10 @@ if (agentId === 'coding') {
       if (ctrl && !ctrl.signal.aborted) {
         ctrl.abort();
       }
-      // best-effort server-side interrupt for coding stream
-      if (lastAgentRef.current === 'coding' && lastConvRef.current) {
+      // best-effort server-side interrupt for coding, finance, or news stream
+      if ((lastAgentRef.current === 'coding' || lastAgentRef.current === 'finance' || lastAgentRef.current === 'news') && lastConvRef.current) {
         try {
-          await fetch('http://localhost:8000/coding/ask/interrupt', {
+          await fetch(`http://localhost:8000/${lastAgentRef.current}/ask/interrupt`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ conversation_id: lastConvRef.current })
@@ -731,12 +731,12 @@ if (agentId === 'coding') {
       "Something went wrong with your previous response. Please check the last task you were working on and continue to complete it.";
 
     try {
-      if (agentId === 'coding') {
+      if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
         // Stream silently to continue the task
         const controller = new AbortController();
         abortRef.current = controller;
 
-        const streamRes = await fetch('http://localhost:8000/coding/ask/stream', {
+        const streamRes = await fetch(`http://localhost:8000/${agentId}/ask/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

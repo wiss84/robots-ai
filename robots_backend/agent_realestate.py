@@ -5,8 +5,10 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio_langchain import ComposioToolSet, Action, App
+from composio import Composio
 import os
+from composio_langchain import LangchainProvider
+from dotenv import load_dotenv
 from agents_system_prompts import REALESTATE_AGENT_SYSTEM_PROMPT
 import time
 from osm_tools import osm_route, osm_poi_search
@@ -23,12 +25,14 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.1,
 )
 
-composio_toolset = ComposioToolSet(api_key=os.getenv('COMPOSIO_API_KEY'))
+load_dotenv()
+
+composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainProvider())
 
 # Get multiple search tools for comprehensive real estate assistance
-real_estate_tools = composio_toolset.get_tools(actions=[
-    'COMPOSIO_SEARCH_GOOGLE_MAPS_SEARCH',
-    'COMPOSIO_SEARCH_SEARCH',
+real_estate_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
+    "COMPOSIO_SEARCH_GOOGLE_MAPS_SEARCH",
+    "COMPOSIO_SEARCH_SEARCH",
 ])
 
 # Integrate RealtyUS tools

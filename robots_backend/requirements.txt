@@ -11,7 +11,7 @@ langchain-community==0.3.27
 langchain-core==0.3.66
 
 # Tools & Utilities
-composio-langchain==0.7.20
+composio-langchain==0.8.9
 python-dotenv==1.0.1
 pydantic==2.10.6
 httpx==0.28.1

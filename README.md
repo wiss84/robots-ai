@@ -142,6 +142,7 @@ GOOGLE_API_KEY=your_google_api_key_here
 
 # Composio MCP API (for search tools, free with limited refreshable usage per month)
 COMPOSIO_API_KEY=your_composio_api_key_here
+COMPOSIO_USER_ID='The email you signed up with on composio'
 
 # LangSmith (if you want to observe for debugging)
 LANGCHAIN_TRACING_V2=true

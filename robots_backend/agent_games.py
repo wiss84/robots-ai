@@ -6,9 +6,11 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio_langchain import ComposioToolSet, Action, App
+from composio import Composio
 import os
 import time
+from composio_langchain import LangchainProvider
+from dotenv import load_dotenv
 from agents_system_prompts import GAMES_AGENT_SYSTEM_PROMPT
 from chess_tool import chess_apply_move, get_legal_moves_for_fen
 
@@ -24,11 +26,13 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.0,  # Set to 0 for more deterministic behavior
 )
 
+load_dotenv()
+
 # Initialize Composio toolset
-composio_toolset = ComposioToolSet(api_key=os.getenv('COMPOSIO_API_KEY'))
+composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainProvider())
 
 # Get search tools
-search_tools = composio_toolset.get_tools(actions=['COMPOSIO_SEARCH_SEARCH'])
+search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_SEARCH"])
 
 # Register chess tools
 chess_tools = [chess_apply_move]
