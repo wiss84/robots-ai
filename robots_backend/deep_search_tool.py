@@ -107,13 +107,13 @@ def batch_summarize(results, batch_size=25, research_domain="general"):
         return []
     
     domain_instructions = {
-        "general": "You are a research analyst. Summarize key findings, keeping important facts, dates, and context. IMPORTANT: Always preserve and include the source URLs in your summary.",
-        "academic": "You are an academic researcher. Summarize key findings with focus on methodology, conclusions, and scholarly insights. IMPORTANT: Always preserve and include the source URLs in your summary.",
-        "technical": "You are a technical analyst. Summarize key findings with focus on specifications, implementations, and technical details. IMPORTANT: Always preserve and include the source URLs in your summary.",
-        "business": "You are a business analyst. Summarize key findings with focus on market data, trends, and business implications. IMPORTANT: Always preserve and include the source URLs in your summary.",
-        "finance": "You are a financial analyst. Summarize key findings with focus on financial data, market trends, and investment insights. IMPORTANT: Always preserve and include the source URLs in your summary.",
-        "medical": "You are a medical researcher. Summarize key findings with focus on clinical data, research results, and health implications. IMPORTANT: Always preserve and include the source URLs in your summary.",
-        "legal": "You are a legal analyst. Summarize key findings with focus on legal precedents, regulations, and case details. IMPORTANT: Always preserve and include the source URLs in your summary."
+        "general": "You are a research analyst. Summarize key findings, keeping important facts, dates, and context. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com).",
+        "academic": "You are an academic researcher. Summarize key findings with focus on methodology, conclusions, and scholarly insights. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com).",
+        "technical": "You are a technical analyst. Summarize key findings with focus on specifications, implementations, and technical details. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com).",
+        "business": "You are a business analyst. Summarize key findings with focus on market data, trends, and business implications. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com).",
+        "finance": "You are a financial analyst. Summarize key findings with focus on financial data, market trends, and investment insights. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com).",
+        "medical": "You are a medical researcher. Summarize key findings with focus on clinical data, research results, and health implications. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com).",
+        "legal": "You are a legal analyst. Summarize key findings with focus on legal precedents, regulations, and case details. IMPORTANT: Always preserve and include the source URLs in your summary as plain URLs without brackets or formatting (e.g., https://example.com)."
     }
     
     system_prompt = domain_instructions.get(research_domain, domain_instructions["general"])
@@ -129,20 +129,33 @@ def batch_summarize(results, batch_size=25, research_domain="general"):
             title = r.get("title", "")
             body = r.get("body", "")
             link = r.get("href", "")
-            snippets.append(f"- **{title}**: {body} <cite>[Source: {link}]</cite>")
-        
+            # Ensure URL is clean and properly formatted
+            clean_link = link.strip()
+            snippet = f"- **{title}**: {body}\nSource: {clean_link}"
+            snippets.append(snippet)
+
         text_block = "\n".join(snippets)
+        print(f"Final text block: {text_block[:300]}...")  # Debug: Check final text block
         
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
-            ("human", "Here are search results to summarize:\n\n{text}\n\nProvide a summary highlighting the most important information and insights. For each fact or claim, include the source link.")
+            ("human", "Here are search results to summarize:\n\n{text}\n\nProvide a summary highlighting the most important information and insights. For each fact or claim, include the source link as a plain URL (e.g., https://example.com) without brackets or additional formatting.")
         ])
         
         try:
             time.sleep(2)  # Rate limiting
             chain = prompt | llm_summarization  # Batch summaries use flash
             response = chain.invoke({"text": text_block})
-            summaries.append(response.content)
+
+            # Clean up Gemini's response to remove square brackets around URLs
+            cleaned_content = response.content
+            # Remove square brackets around URLs: [https://example.com] -> https://example.com
+            import re
+            cleaned_content = re.sub(r'\[(\s*https?://[^\]]+)\]', r'\1', cleaned_content)
+            # Also remove any standalone brackets that might remain
+            cleaned_content = re.sub(r'\[\s*\]|\[\s*https?://[^\]]*\]', '', cleaned_content)
+
+            summaries.append(cleaned_content)
         except Exception as e:
             print(f"Error summarizing batch {i+1}: {e}")
             continue
@@ -155,7 +168,8 @@ def final_summarize(summaries, query, research_domain="general"):
         return "No information could be processed."
     
     joined = "\n\n".join(summaries)
-    
+    print(f"Joined summaries preview: {joined[:500]}...")  # Debug: Check joined summaries
+
     domain_context = {
         "general": "comprehensive research report",
         "academic": "academic research with scholarly insights",
@@ -180,7 +194,9 @@ Please create a very comprehensive, well-structured final report that:
 2. Synthesizes the key findings from all sources
 3. Identifies patterns, trends, or insights
 4. Provides a clear conclusion
-5. Always preserve and include a maximum of 6 most important unique source links alongside the information.
+5. Always preserve and include source links as plain URLs (e.g., https://example.com) without any brackets, formatting, or additional text.
+
+IMPORTANT: Include source URLs as plain links like "Source: https://example.com" at the end of relevant paragraphs or sections. Do not wrap URLs in brackets, quotes, or any other formatting.
 
 Structure your response with clear headings and organize the information logically.""")
     ])
@@ -189,7 +205,15 @@ Structure your response with clear headings and organize the information logical
         time.sleep(5)  # Rate limiting
         chain = prompt | llm_summarization  # Final summary also uses flash
         response = chain.invoke({"summaries": joined, "query": query})
-        return response.content
+
+        # Clean up Gemini's response to remove square brackets around URLs
+        cleaned_content = response.content
+        import re
+        cleaned_content = re.sub(r'\[(\s*https?://[^\]]+)\]', r'\1', cleaned_content)
+        # Also remove any standalone brackets that might remain
+        cleaned_content = re.sub(r'\[\s*\]|\[\s*https?://[^\]]*\]', '', cleaned_content)
+
+        return cleaned_content
     except Exception as e:
         print(f"Error in final summarization: {e}")
         return f"Error generating final summary. Raw summaries: {joined}"
@@ -244,5 +268,8 @@ def deep_search(query: str, research_domain: str = "general", max_results_per_qu
     
     # Final comprehensive summary
     final_answer = final_summarize(batch_summaries, query, research_domain)
-    
+
+    # Debug: Print final answer to check URL formatting
+    print(f"Final answer preview: {final_answer[:300]}...")
+
     return final_answer

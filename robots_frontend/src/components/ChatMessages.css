@@ -477,12 +477,44 @@ body.light-theme .chat-message-label {
   background-color: #1a2530;
   border: 1px solid #0097a733;
   transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
 }
 
 .citation-link:hover {
   background-color: #0097a7;
   color: white;
   text-decoration: none;
+}
+
+.citation-link:hover::after {
+  content: "Source: " attr(href);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #23272f;
+  color: #b2eaff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  z-index: 1000;
+  border: 1px solid #0097a733;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  opacity: 1;
+  pointer-events: none;
+}
+
+.citation-link:hover::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #23272f;
+  margin-bottom: -1px;
 }
 
 .citation-content {

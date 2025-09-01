@@ -6,7 +6,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-# from composio_langchain import ComposioToolSet, Action, App
+
 import os
 import json
 import time
@@ -27,10 +27,6 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.1,
 )
 
-# composio_toolset = ComposioToolSet(api_key=os.getenv('COMPOSIO_API_KEY'))
-# finance_search_tools = composio_toolset.get_tools(actions=['COMPOSIO_SEARCH_FINANCE_SEARCH', 'COMPOSIO_SEARCH_SEARCH'])
-
-# tools = finance_search_tools + [deep_search]
 tools = [deep_search]
 
 def handle_tool_error(state) -> dict:
@@ -139,70 +135,58 @@ async def ask_finance_agent_stream(
     conversation_id: str = Body(None, embed=True),
 ):
     """
-    Server-Sent Events (SSE) streaming endpoint for the finance agent.
+    SSE streaming endpoint for the finance agent.
+    Streams only the assistant node's tokens.
     Emits JSON lines with:
-      - {"type":"token","content": "..."} incremental tokens from the model
+      - {"type":"token","content": "..."} incremental tokens
       - {"type":"done","conversation_id": "..."} when completed
       - {"type":"error","message": "..."} on error
     """
     try:
-        # Use provided conversation_id or create a new one
         if not conversation_id:
             conversation_id = f"thread_{int(time.time())}"
 
         config = {
             "configurable": {"thread_id": conversation_id},
-            "recursion_limit": 50
+            "recursion_limit": 50,
         }
-        # Create initial state
         state = {"messages": [HumanMessage(content=message)]}
 
         async def event_generator():
             try:
-                # If this thread was cancelled before we started, exit immediately
                 if conversation_id in CANCELLED_THREADS:
                     yield f"data: {json.dumps({'type': 'error', 'message': 'interrupted'})}\n\n"
                     CANCELLED_THREADS.discard(conversation_id)
                     return
 
-                # Stream events from LangGraph execution
                 async for event in graph.astream_events(state, config=config, version="v2"):
-                    # Allow cooperative cancellation between chunks
                     if conversation_id in CANCELLED_THREADS:
-                        # Optionally send a final done event before closing
                         yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
                         CANCELLED_THREADS.discard(conversation_id)
                         return
 
-                    # LangChain event names may vary by version; handle common streaming hooks
                     ev = event.get("event", "")
                     data = event.get("data", {}) or {}
+                    metadata = event.get("metadata", {}) or {}
+                    node = metadata.get("langgraph_node", "")
 
-                    # Stream tokens from the chat model as they arrive
-                    # Common event key: "on_chat_model_stream"
-                    if ev.endswith("on_chat_model_stream") or ev == "on_chat_model_stream":
+                    # Only stream assistant node chunks
+                    if (ev.endswith("on_chat_model_stream") or ev == "on_chat_model_stream") and node == "assistant":
                         chunk = data.get("chunk")
-                        token = None
-                        # chunk can be a LangChain BaseMessageChunk with 'content', or a raw string
-                        if chunk is not None:
-                            try:
-                                token = getattr(chunk, "content", None)
-                                if token is None:
-                                    token = str(chunk)
-                            except Exception:
-                                token = None
+                        token = getattr(chunk, "content", None) if chunk else None
                         if token:
                             yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
 
-                # Signal completion
-                yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
+                    # Mark assistant completion
+                    if (ev.endswith("on_chat_model_end") or ev == "on_chat_model_end") and node == "assistant":
+                        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
+
             except Exception as e:
-                # Stream error and close
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
+
     except Exception as e:
-        # In case construction failed
         async def err():
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
         return StreamingResponse(err(), media_type="text/event-stream")
