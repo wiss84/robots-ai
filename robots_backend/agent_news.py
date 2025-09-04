@@ -178,10 +178,12 @@ async def ask_news_agent_stream(
                     # LangChain event names may vary by version; handle common streaming hooks
                     ev = event.get("event", "")
                     data = event.get("data", {}) or {}
+                    metadata = event.get("metadata", {}) or {}
+                    node = metadata.get("langgraph_node", "")
 
-                    # Stream tokens from the chat model as they arrive
+                    # Stream tokens from the chat model as they arrive (only from assistant node)
                     # Common event key: "on_chat_model_stream"
-                    if ev.endswith("on_chat_model_stream") or ev == "on_chat_model_stream":
+                    if (ev.endswith("on_chat_model_stream") or ev == "on_chat_model_stream") and node == "assistant":
                         chunk = data.get("chunk")
                         token = None
                         # chunk can be a LangChain BaseMessageChunk with 'content', or a raw string

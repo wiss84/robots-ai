@@ -20,6 +20,7 @@ import traceback
 from websocket_suggestions import router as websocket_suggestions_router
 from websocket_file_changes import router as websocket_file_changes_router
 from project_index import router as project_index_router
+from server_sent_events import router as sse_router
 import re
 from rate_limiter import rate_limiter
 
@@ -38,6 +39,7 @@ app.include_router(file_create_router)
 app.include_router(websocket_suggestions_router)
 app.include_router(websocket_file_changes_router)
 app.include_router(project_index_router)
+app.include_router(sse_router)
 
 # Serve uploaded files as static
 import os

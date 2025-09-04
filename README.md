@@ -19,10 +19,17 @@ https://youtu.be/yrBJ0CRmyEU
 Watch a quick demo of the Games Agent in action:
 https://youtu.be/w6gwGUEF7i0
 
+## 💰 Finance Agent with Deep Search Demo
+
+Watch the AI-powered Finance Agent with advanced deep search capabilities in action:
+https://youtu.be/bel9mymvYCg
+
 ## Agent-switching System Demo
 
 Watch a quick demo of the new powerful agent-switching system in action:
 https://youtu.be/Z1i5hmBJz-I
+
+## Coding Agent Demo
 
 Watch a quick demo of the (Agent Mode) coding Agent in action:
 https://youtu.be/j2UX84jdfz8

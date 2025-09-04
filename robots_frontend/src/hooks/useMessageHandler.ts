@@ -22,6 +22,7 @@ interface UseMessageHandlerProps {
   userName: string;
 }
 
+
 export const useMessageHandler = ({
   user,
   agentId,
@@ -159,7 +160,7 @@ export const useMessageHandler = ({
 // If coding, finance, or news agent, use streaming endpoint
 if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
   try {
-    setPose('thinking');
+    setPose('typing');
 
     const streamRes = await fetch(`http://localhost:8000/${agentId}/ask/stream`, {
       method: 'POST',
@@ -256,11 +257,13 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
         }
         return updated;
       });
-      setPose('arms_crossing');
+      setPose('wondering');
       setLoadingMessages(false);
       abortRef.current = null;
       return;
     }
+
+
 
     // Save agent streamed message to database
     if (convId && user && assembled) {
@@ -388,7 +391,7 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
         const respStr = typeof data.response === 'string' ? data.response : String(data.response ?? '');
         if (!respStr || respStr.trim() === '') {
           setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: '[[CONTINUE]] Something went wrong with the previous response. Click Continue to resume the previous task.' }]);
-          setPose('arms_crossing');
+          setPose('wondering');
           setLoadingMessages(false);
           abortRef.current = null;
           return;
@@ -631,7 +634,7 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
     } catch (err: any) {
       // Graceful handling of user-initiated cancel
       if ((err && err.name === 'AbortError')) {
-        setPose('arms_crossing');
+        setPose('wondering');
         setLoadingMessages(false);
         abortRef.current = null;
         return;

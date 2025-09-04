@@ -1,0 +1,132 @@
+/* Dark theme (default) */
+.deep-search-container {
+  margin: 8px 0;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  overflow: hidden;
+}
+
+.deep-search-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  background-color: #23272f;
+  border-bottom: 1px solid #333;
+  transition: background-color 0.2s ease;
+}
+
+.deep-search-header:hover {
+  background-color: #2a2f3a;
+}
+
+.deep-search-title {
+  font-weight: 600;
+  color: #00bcd4;
+  font-size: 14px;
+}
+
+.deep-search-count {
+  background-color: #00bcd4;
+  color: #121212;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.deep-search-toggle {
+  color: #888;
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.deep-search-content {
+  padding: 16px;
+  background-color: #23272f;
+}
+
+.deep-search-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deep-search-link {
+  color: #00bcd4;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  transition: all 0.2s ease;
+  word-break: break-all;
+}
+
+.deep-search-link:hover {
+  background-color: #2a2f3a;
+  color: #0097a7;
+  text-decoration: underline;
+}
+
+.deep-search-link:visited {
+  color: #888;
+}
+
+.deep-search-link:visited:hover {
+  color: #aaa;
+}
+
+/* Light theme */
+body.light-theme .deep-search-container {
+  border: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+body.light-theme .deep-search-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+body.light-theme .deep-search-header:hover {
+  background-color: #f0f1f2;
+}
+
+body.light-theme .deep-search-title {
+  color: #2c3e50;
+}
+
+body.light-theme .deep-search-count {
+  background-color: #007bff;
+  color: white;
+}
+
+body.light-theme .deep-search-toggle {
+  color: #6c757d;
+}
+
+body.light-theme .deep-search-content {
+  background-color: #ffffff;
+}
+
+body.light-theme .deep-search-link {
+  color: #007bff;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+}
+
+body.light-theme .deep-search-link:hover {
+  background-color: #e9ecef;
+  color: #0056b3;
+}
+
+body.light-theme .deep-search-link:visited {
+  color: #6c757d;
+}
+
+body.light-theme .deep-search-link:visited:hover {
+  color: #495057;
+}
