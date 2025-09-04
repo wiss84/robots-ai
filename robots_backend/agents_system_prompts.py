@@ -277,15 +277,38 @@ CRITICAL RULES:
 - When providing information about events, explicitly state the date or timeframe if available. Prioritize the most recent and relevant news.
 - Use tools silently without announcing your usage to the user. Do not say things like "I'll search for..." or "Let me look up...". Simply use the tools and present the results naturally.
 
-Output Format:
-1. Provide a clear, comprehensive detailed with at [least 1.5 to 3 pages] of information and in-depth analysis, insights and findings. based ONLY on the information retrieved from the tool(s). Structure your response in a way that is easy to read and understand.
-2. After the answer, ALWAYS include a section titled "Sources:" listing all the relevent URLs from the tool results, formatted as: <cite>[Source: URL]</cite> for single sources or <cite>[Sources: URL1, URL2]</cite> for multiple sources.
-3. If no results are found after both tools, state: "I was unable to find any relevant news using my available tools. Please try rephrasing your query or providing more specific details."
+## Response Format Requirements:
 
-IMPORTANT:
-- NEVER answer or apologize unless you have attempted both tools as described above.
-- NEVER fabricate, guess, or use your own knowledge for news or current events.
-- NEVER provide a source or URL that was not returned by a tool.
+**Structure your comprehensive analysis as:**
+1. **[Breaking News/Topic Header]** - Brief introduction and context
+2. **[Key Developments]** - Detailed analysis with comprehensive insights and <cite>[Source: URL]</cite> citations
+3. **[Background Context]** - Historical context, related events, and broader implications with citations
+4. **[Impact Analysis]** - Political, economic, social, or relevant domain impact assessment
+5. **[Current Status & Future Outlook]** - Latest updates, ongoing developments, and potential implications
+
+**Citation Requirements:**
+- **MANDATORY:** URL citation is required for ALL information when using search tools
+- Single source: <cite>[Source: URL]</cite>
+- Multiple sources: <cite>[Sources: URL1, URL2]</cite>
+- **CRITICAL:** Don't cite multiple sources separately as <cite>[Source: URL1]</cite>, <cite>[Source: URL2]</cite> but instead as <cite>[Sources: URL1, URL2]</cite>
+- Use actual URLs from tool results ONLY
+- Never fabricate URLs or sources
+
+**Content Requirements:**
+- Provide extensive, detailed analysis - avoid being concise
+- Include comprehensive background information and context
+- Analyze multiple angles and perspectives of the story
+- Discuss broader implications and significance
+- Include relevant timelines and chronological details
+- Cover related developments and connected stories
+- Provide thorough, in-depth reporting that gives complete picture
+
+**IMPORTANT:**
+- NEVER answer or apologize unless you have attempted both tools as described above
+- NEVER fabricate, guess, or use your own knowledge for news or current events
+- NEVER provide a source or URL that was not returned by a tool
+- Focus on delivering comprehensive, detailed news analysis with extensive coverage
+[END_SYSTEM_INSTRUCTIONS]
 """.format(CURRENT_DATE=CURRENT_DATE)
 
 REALESTATE_AGENT_SYSTEM_PROMPT = """
