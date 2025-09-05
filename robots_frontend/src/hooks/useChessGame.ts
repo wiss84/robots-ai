@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { parseChessResponse } from '../utils/chessParser';
 
 interface GameState {
   isActive: boolean;
   isAgentTurn: boolean;
-  gameStatus: string;
+  gameStatus: 'idle' | 'active' | 'check' | 'checkmate' | 'draw' | 'gameover';
 }
 
 interface UseChessGameProps {
@@ -15,6 +15,7 @@ interface UseChessGameProps {
   supabase: any;
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   setLoadingMessages: (loading: boolean) => void;
+  handleSendMessage?: (message: string, fileInfo: any, convId: string) => Promise<void>; // Make optional
 }
 
 export const useChessGame = ({
@@ -24,13 +25,25 @@ export const useChessGame = ({
   user,
   supabase,
   setMessages,
-  setLoadingMessages
+  setLoadingMessages,
+  handleSendMessage // Optional unified message handler
 }: UseChessGameProps) => {
   // Chess position from backend
   const [chessPosition, setChessPosition] = useState<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   // Add missing state hooks for chess integration
   const [gameId, setGameId] = useState<string | null>(null);
   const latestFenRef = useRef<string>(chessPosition);
+
+  // Ref to store the latest handleSendMessage function
+  const handleSendMessageRef = useRef(handleSendMessage);
+  
+  // Update the ref when handleSendMessage changes
+  useEffect(() => {
+    console.log('Updating handleSendMessageRef with new function in useEffect', {
+      hasFunction: !!handleSendMessage
+    });
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
 
   // Game state for games agent
   const [gameState, setGameState] = useState<GameState>({
@@ -41,6 +54,53 @@ export const useChessGame = ({
   
   // Check if this is the games agent
   const isGamesAgent = agentId === 'games';
+
+  // Chess response handler for useMessageHandler callback
+  const handleChessResponse = async (response: string, convId: string) => {
+    // Parse agent response using chess parser utility
+    const chessResult = parseChessResponse(response, isGamesAgent);
+    
+    if (chessResult.isChessResponse && chessResult.shouldUpdateBoard && chessResult.fen) {
+      // Update chessboard with extracted FEN
+      setChessPosition(chessResult.fen);
+      setGameState({
+        isActive: true,
+        isAgentTurn: false,
+        gameStatus: 'active'
+      });
+      
+      // Show the cleaned response in chat (without FEN)
+      const displayContent = chessResult.displayText || response;
+      setMessages(prev => [...prev, { role: 'agent', content: displayContent }]);
+      
+      // Save agent response to Supabase messages (use same cleaned content as UI)
+      if (convId && user) {
+        await supabase.from('messages').insert([
+          {
+            conversation_id: convId,
+            user_id: user.id,
+            agent_id: agentId,
+            role: 'agent',
+            content: displayContent  // Save the cleaned content that user sees
+          }
+        ]);
+      }
+    } else {
+      // Show response as normal chat (for non-chess responses)
+      setMessages(prev => [...prev, { role: 'agent', content: response }]);
+      if (convId && user) {
+        await supabase.from('messages').insert([
+          {
+            conversation_id: convId,
+            user_id: user.id,
+            agent_id: agentId,
+            role: 'agent',
+            content: response
+          }
+        ]);
+      }
+    }
+  };
 
   // Add a helper to generate a UUID (if not already present)
   function generateUUID() {
@@ -55,24 +115,21 @@ export const useChessGame = ({
   const resetChessState = async () => {
     setGameState({ isActive: true, isAgentTurn: false, gameStatus: 'active' });
     setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    
+    // Add user-friendly message to UI
+    setMessages(prev => [...prev, { role: 'user', content: 'I just started a new chess game' }]);
+    
     // Inform the agent if a conversation is active
     if (isGamesAgent && agentId && user && conversationId) {
-      const startNewGameMsg = "User decided to start a new chess game.";
-      try {
-        await fetch('http://localhost:8000/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer test-token'
-          },
-          body: JSON.stringify({
-            agent_id: agentId,
-            message: startNewGameMsg,
-            conversation_id: conversationId,
-            user_name: userName
-          })
+      const startNewGameMsg = `${userName} decided to start a new game, please acknowledge it`;
+      if (handleSendMessageRef.current) {
+        console.log('resetChessState: About to send message via handleSendMessageRef', {
+          startNewGameMsg,
+          conversationId
         });
-      } catch (err) {
+        await handleSendMessageRef.current(startNewGameMsg, null, conversationId);
+      } else {
+        console.error('handleSendMessage not available for resetChessState');
         setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of new chess game.' }]);
       }
     }
@@ -104,6 +161,15 @@ export const useChessGame = ({
     setGameId(newGameId);
     setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     setGameState({ isActive: true, isAgentTurn: false, gameStatus: 'active' });
+    
+    // Notify the agent about the game start
+    if (isGamesAgent && agentId && user && convId) {
+      const startGameMsg = `${userName} just started a chess game. Please respond with your excitement.`;
+      if (handleSendMessageRef.current) {
+        await handleSendMessageRef.current(startGameMsg, null, convId);
+      }
+    }
+    
     // Fetch legal moves for initial position
     const res = await fetch('http://localhost:8000/games/legal_moves', {
       method: 'POST',
@@ -115,33 +181,15 @@ export const useChessGame = ({
     }
   };
 
-  // Update handleChessMove to use /games/legal_moves
+  // Update handleChessMove to use unified message handler
   const handleChessMove = async (move: string, newFen?: string) => {
     if (!agentId || !user || !gameId) return;
     const fenToUse = newFen || chessPosition;
     latestFenRef.current = fenToUse;
     
-    // Debug: Log the FEN being used
-    console.log('handleChessMove - fenToUse:', fenToUse);
-    console.log('handleChessMove - move:', move);
-    
     setChessPosition(fenToUse);
-    const moveMessage = { role: 'user', content: move };
+    const moveMessage = { role: 'user', content: `I played ${move}` };  // Show user-friendly message in UI
     setMessages(prev => [...prev, moveMessage]);
-    setLoadingMessages(true);
-
-    // Save user move to Supabase messages
-    if (conversationId && user) {
-      await supabase.from('messages').insert([
-        {
-          conversation_id: conversationId,
-          user_id: user.id,
-          agent_id: agentId,
-          role: 'user',
-          content: move
-        }
-      ]);
-    }
 
     // Fetch legal moves for new FEN and wait for the result
     let newLegalMoves: string[] = [];
@@ -164,97 +212,45 @@ export const useChessGame = ({
     }
     // Legal moves are fetched but not stored in state since they're not used
 
-    // Debug log for legal moves
-    console.log('Legal moves:', newLegalMoves);
-
     // If legal moves fetch failed or is empty (and not checkmate/stalemate), show error and do not send to agent
     if (legalMovesFetchFailed) {
-      console.log('Returning early: legal moves fetch failed');
       setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not fetch legal moves for this position.' }]);
       setLoadingMessages(false);
       return;
     }
     if (newLegalMoves.length === 0) {
-      console.log('Returning early: no legal moves available');
-      setMessages(prev => [...prev, { role: 'system', content: 'No legal moves available. The game may be over (checkmate or stalemate).' }]);
+      // Update game state to indicate the game is over
+      setGameState(prev => ({
+        ...prev,
+        gameStatus: 'gameover'
+      }));
+      
+      // Send a message to the agent informing it that the game may be over
+      const gameOverMessage = `I just made the move ${move}. The current position is ${fenToUse}. There are no legal moves available. The game may be over (checkmate or stalemate). Please respond appropriately and congratulate the winner or acknowledge the draw.`;
+      
+      if (handleSendMessageRef.current) {
+        // Send the game over message to the agent
+        await handleSendMessageRef.current(gameOverMessage, null, conversationId);
+      } else {
+        // If we can't send to the agent, at least show the automated message
+        setMessages(prev => [...prev, { role: 'system', content: 'No legal moves available. The game may be over (checkmate or stalemate).' }]);
+      }
       setLoadingMessages(false);
       return;
     }
 
-    // Now send the agent message in natural language
-    const agentMessage = `I just made the move ${move}. The current position is ${fenToUse}. Available legal moves are: ${newLegalMoves.join(', ')}. Please make your move using the chess tool.`;
+    // Now send the agent message in natural language using unified message handler
+    const agentMessage = `I just made the move ${move}. The current position is ${fenToUse}. Available legal moves are: ${newLegalMoves.join(', ')}. Please make your move using the chess_apply_move.`;
 
-    // Debug log to verify what is being sent to /chat
-    console.log('About to send to /chat');
-    console.log('Sending to /chat:', agentMessage);
-
-    try {
-      const res = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-token'
-        },
-        body: JSON.stringify({
-          agent_id: agentId,
-          message: agentMessage,
-          conversation_id: conversationId,
-          user_name: userName
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Parse agent response using chess parser utility
-        const chessResult = parseChessResponse(data.response, isGamesAgent);
-        
-        if (chessResult.isChessResponse && chessResult.shouldUpdateBoard && chessResult.fen) {
-          // Debug: Log the FEN from agent response
-          console.log('Agent response FEN:', chessResult.fen);
-          
-          // Update chessboard with extracted FEN
-          setChessPosition(chessResult.fen);
-          setGameState({
-            isActive: true,
-            isAgentTurn: false,
-            gameStatus: 'active'
-          });
-          
-          // Show the cleaned response in chat (without FEN)
-          const displayContent = chessResult.displayText || data.response;
-          setMessages(prev => [...prev, { role: 'agent', content: displayContent }]);
-          
-          // Save agent response to Supabase messages
-          if (conversationId && user) {
-            await supabase.from('messages').insert([
-              {
-                conversation_id: conversationId,
-                user_id: user.id,
-                agent_id: agentId,
-                role: 'agent',
-                content: data.response
-              }
-            ]);
-          }
-        } else {
-          // Show response as normal chat (for non-chess responses or other agents)
-          setMessages(prev => [...prev, { role: 'agent', content: data.response }]);
-          if (conversationId && user) {
-            await supabase.from('messages').insert([
-              {
-                conversation_id: conversationId,
-                user_id: user.id,
-                agent_id: agentId,
-                role: 'agent',
-                content: data.response
-              }
-            ]);
-          }
-        }
-      }
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'agent', content: 'Error: Could not reach backend.' }]);
+    // Use unified message handler instead of direct API calls
+    if (handleSendMessageRef.current) {
+      // Don't add this message to UI since we already added the user-friendly message
+      // We'll send it through the handler but prevent it from being displayed
+      await handleSendMessageRef.current(agentMessage, null, conversationId);
+    } else {
+      console.error('handleSendMessage not available');
+      setLoadingMessages(false);
     }
-    setLoadingMessages(false);
   };
 
   // Handle game state change from chessboard
@@ -270,23 +266,20 @@ export const useChessGame = ({
   // Handler to close the chess game
   const handleCloseChessGame = async () => {
     setGameState({ ...gameState, isActive: false });
+    
+    // Add user-friendly message to UI
+    setMessages(prev => [...prev, { role: 'user', content: 'I just closed the chess game' }]);
+    
     if (isGamesAgent && agentId && user && conversationId) {
-      const endGameMsg = "User decided to end the current chess game";
-      try {
-        await fetch('http://localhost:8000/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer test-token'
-          },
-          body: JSON.stringify({
-            agent_id: agentId,
-            message: endGameMsg,
-            conversation_id: conversationId,
-            user_name: userName
-          })
+      const endGameMsg = `${userName} decided to close the current chess game, please acknowledge it`;
+      if (handleSendMessageRef.current) {
+        console.log('handleCloseChessGame: About to send message via handleSendMessageRef', {
+          endGameMsg,
+          conversationId
         });
-      } catch (err) {
+        await handleSendMessageRef.current(endGameMsg, null, conversationId);
+      } else {
+        console.error('handleSendMessage not available for handleCloseChessGame');
         setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of chess game closure.' }]);
       }
     }
@@ -301,6 +294,7 @@ export const useChessGame = ({
     handleChessTrigger,
     handleChessMove,
     handleGameStateChange,
-    handleCloseChessGame
+    handleCloseChessGame,
+    handleChessResponse // Export the chess response handler
   };
 };

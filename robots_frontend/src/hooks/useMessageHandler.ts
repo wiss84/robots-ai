@@ -21,6 +21,7 @@ interface UseMessageHandlerProps {
   setConversationId: (id: string) => void;
   isGamesAgent: boolean;
   userName: string;
+  onChessResponse?: (response: string, convId: string) => Promise<void>; // Callback for chess response handling
 }
 
 
@@ -35,7 +36,8 @@ export const useMessageHandler = ({
   handleRenameConversation,
   setConversationId,
   isGamesAgent,
-  userName
+  userName,
+  onChessResponse
 }: UseMessageHandlerProps) => {
 
   // Abort/cancel support
@@ -59,7 +61,15 @@ export const useMessageHandler = ({
     if (isGamesAgent && userMessage.toLowerCase().includes('chess')) {
       // This would trigger chess game initialization
       // The actual chess handling is done in useChessGame hook
+      console.log('useMessageHandler: Detected chess-related message', { userMessage });
     }
+    
+    console.log('useMessageHandler: Processing message', { 
+      userMessage, 
+      agentId, 
+      convId, 
+      isGamesAgent 
+    });
     
 
     
@@ -70,6 +80,23 @@ export const useMessageHandler = ({
       role: 'user',
       content: userMessage
     };
+    
+    // Check if this is a chess move message that shouldn't be displayed in UI
+    const isHiddenChessMessage = userMessage.includes('I just made the move') && 
+                                userMessage.includes('The current position is') && 
+                                userMessage.includes('Available legal moves are');
+    
+    // Check if this is a chess start message that shouldn't be displayed in UI
+    const isHiddenChessStartMessage = userMessage.includes('just started a chess game') && 
+                                     userMessage.includes('Please respond with your excitement');
+    
+    // Check if this is a new game message that shouldn't be displayed in UI
+    const isHiddenNewGameMessage = userMessage.includes('decided to start a new game') && 
+                                  userMessage.includes('please acknowledge it');
+    
+    // Check if this is a close game message that shouldn't be displayed in UI
+    const isHiddenCloseGameMessage = userMessage.includes('decided to close the current chess game') && 
+                                    userMessage.includes('please acknowledge it');
     
     // Handle file attachments
     if (fileInfo) {
@@ -110,32 +137,36 @@ export const useMessageHandler = ({
       }
     }
     
-    // Add user message to UI immediately
-    setMessages((prev: ChatMessage[]) => [...prev, chatMessage]);
-    
-    // Save user message to database
-  if (convId && user) {
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .insert([{
-          conversation_id: convId,
-          user_id: user.id,
-          agent_id: agentId,
-          role: 'user',
-          content: userMessage,
-          type: chatMessage.type || null,
-          file_url: chatMessage.fileUrl || null
-        }])
-        .select();
-        
-      if (error) {
-        console.error('Error saving message to Supabase:', error);
-      }
-    } catch (err) {
-      console.error('Failed to save message to database:', err);
+    // Add user message to UI immediately (unless it's a hidden chess message)
+    if (!isHiddenChessMessage && !isHiddenChessStartMessage && !isHiddenNewGameMessage && !isHiddenCloseGameMessage) {
+      setMessages((prev: ChatMessage[]) => [...prev, chatMessage]);
+    } else {
+      console.log('Skipping UI display for hidden chess message');
     }
-  }
+    
+    // Save user message to database (including hidden chess messages)
+    if (convId && user) {
+      try {
+        const { error } = await supabase
+          .from('messages')
+          .insert([{
+            conversation_id: convId,
+            user_id: user.id,
+            agent_id: agentId,
+            role: 'user',
+            content: userMessage,
+            type: chatMessage.type || null,
+            file_url: chatMessage.fileUrl || null
+          }])
+          .select();
+          
+        if (error) {
+          console.error('Error saving message to Supabase:', error);
+        }
+      } catch (err) {
+        console.error('Failed to save message to database:', err);
+      }
+    }
     
     try {
       // Check if we have a conversation summary to send with first message
@@ -501,18 +532,24 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
           try { parsed2 = JSON.parse(data2.response); } catch {}
 
           if (isGamesAgent && parsed2 && parsed2.fen) {
-            setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: data2.response }]);
-            if (convId && user) {
-              try {
-                await supabase.from('messages').insert([{
-                  conversation_id: convId,
-                  user_id: user.id,
-                  agent_id: agentId,
-                  role: 'agent',
-                  content: data2.response
-                }]).select();
-              } catch (e) {
-                console.error('Error saving chess response (retry):', e);
+            // Use callback for chess response handling if provided
+            if (onChessResponse) {
+              await onChessResponse(data2.response, convId);
+            } else {
+              // Fallback to default behavior
+              setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: data2.response }]);
+              if (convId && user) {
+                try {
+                  await supabase.from('messages').insert([{
+                    conversation_id: convId,
+                    user_id: user.id,
+                    agent_id: agentId,
+                    role: 'agent',
+                    content: data2.response
+                  }]).select();
+                } catch (e) {
+                  console.error('Error saving chess response (retry):', e);
+                }
               }
             }
           } else {
@@ -580,30 +617,36 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
       } catch (e) {
         // Not JSON, treat as plain chat
       }
-      if (isGamesAgent && parsed && parsed.fen) {
-        // For chess responses, show the full JSON response in the chat
-        setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: data.response }]);
-        // Note: setChessPosition and setGameState are handled within useChessGame hook
-        
-        // Save agent response to database
-        if (convId && user) {
-          try {
-            const { error } = await supabase
-              .from('messages')
-              .insert([{
-                conversation_id: convId,
-                user_id: user.id,
-                agent_id: agentId,
-                role: 'agent',
-                content: data.response
-              }])
-              .select();
-              
-            if (error) {
-              console.error('Error saving chess response to Supabase:', error);
+      console.log('Chess response handling:', { isGamesAgent, onChessResponse: !!onChessResponse, response: data.response });
+      if (isGamesAgent) {
+        console.log('Processing games agent response:', { response: data.response, onChessResponse: !!onChessResponse });
+        // Use callback for chess response handling if provided
+        if (onChessResponse) {
+          await onChessResponse(data.response, convId);
+        } else {
+          // Fallback to default behavior if no callback
+          setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: data.response }]);
+          
+          // Save agent response to database
+          if (convId && user) {
+            try {
+              const { error } = await supabase
+                .from('messages')
+                .insert([{
+                  conversation_id: convId,
+                  user_id: user.id,
+                  agent_id: agentId,
+                  role: 'agent',
+                  content: data.response
+                }])
+                .select();
+                
+              if (error) {
+                console.error('Error saving chess response to Supabase:', error);
+              }
+            } catch (err) {
+              console.error('Failed to save chess response to database:', err);
             }
-          } catch (err) {
-            console.error('Failed to save chess response to database:', err);
           }
         }
       } else {
@@ -698,7 +741,8 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
     handleRenameConversation,
     setConversationId,
     isGamesAgent,
-    userName
+    userName,
+    onChessResponse
   ]);
 
   const handleCancel = useCallback(async () => {

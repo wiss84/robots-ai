@@ -81,28 +81,7 @@ function ChatUI() {
     return capitalize(userNameRaw);
   }, [user]);
 
-  // Use the chess game hook first
-  const {
-    chessPosition,
-    gameState,
-    isGamesAgent,
-    resetChessState,
-    clearChessState,
-    handleChessTrigger,
-    handleChessMove,
-    handleGameStateChange,
-    handleCloseChessGame
-  } = useChessGame({
-    agentId,
-    conversationId: '', // Will be updated via effect
-    userName,
-    user,
-    supabase,
-    setMessages,
-    setLoadingMessages
-  });
-
-  // Use the pose manager hook after chess game hook
+  // Use the pose manager hook first to get setPose for other hooks
   const {
     pose,
     setPose,
@@ -112,8 +91,8 @@ function ChatUI() {
     agentId,
     messages,
     loadingMessages,
-    gameState,
-    isGamesAgent
+    gameState: { isActive: false, isAgentTurn: false, gameStatus: 'idle' }, // temporary until chess hook
+    isGamesAgent: agentId === 'games'
   });
 
   // Determine the effective agent ID based on mode
@@ -140,6 +119,14 @@ function ChatUI() {
 
   const { lastMessage: fileChangeMessage } = useFileChangeSocket(fileChangesUrl);
 
+  // Declare clearChessState with a temporary function first to avoid circular dependency
+  const [clearChessState, setClearChessState] = useState<(() => void)>(() => () => {});
+
+  // Create a ref to hold the handleSendMessage function
+  const handleSendMessageRef = useRef<(userMessage: string, fileInfo: any, convId: string) => Promise<void>>(async () => {
+    console.log('handleSendMessage not yet initialized');
+  });
+
   // Use the conversations hook
   const {
     conversations,
@@ -159,13 +146,46 @@ function ChatUI() {
     setMessages,
     setLoadingMessages,
     setIsSummarizing,
-    clearChessState,
-    isGamesAgent,
+    clearChessState, // Now using state variable
+    isGamesAgent: agentId === 'games',
     setPose
   });
   const agentName = agentId ? agentNames[agentId] || 'Assistant' : 'Assistant';
 
-  // Use the message handler hook
+  // Use the chess game hook FIRST to get chess response handler
+  const {
+    chessPosition,
+    gameState,
+    isGamesAgent: isGamesAgentFromHook,
+    resetChessState,
+    clearChessState: actualClearChessState,
+    handleChessTrigger,
+    handleChessMove,
+    handleGameStateChange,
+    handleCloseChessGame,
+    handleChessResponse
+  } = useChessGame({
+    agentId,
+    conversationId, // Now we have the real conversationId
+    userName,
+    user,
+    supabase,
+    setMessages,
+    setLoadingMessages,
+    handleSendMessage: async (message: string, fileInfo: any, convId: string) => {
+      // Use the ref to call the actual handleSendMessage function
+      return handleSendMessageRef.current(message, fileInfo, convId);
+    }
+  });
+
+  // Update the clearChessState state with the actual function from useChessGame
+  useEffect(() => {
+    if (actualClearChessState) {
+      setClearChessState(() => actualClearChessState);
+    }
+  }, [actualClearChessState]);
+
+  // Use the message handler hook with chess response callback
   const { handleSend: handleSendMessage, handleCancel, handleHiddenContinue } = useMessageHandler({
     user,
     agentId: effectiveAgentId,
@@ -176,9 +196,15 @@ function ChatUI() {
     setPose,
     handleRenameConversation,
     setConversationId,
-    isGamesAgent,
-    userName
+    isGamesAgent: effectiveAgentId === 'games',
+    userName,
+    onChessResponse: isGamesAgentFromHook ? handleChessResponse : undefined
   });
+
+  // Update the ref when handleSendMessage changes
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
 
   // Handle mode switching - separate conversations for ask mode vs agent mode
   useEffect(() => {
@@ -209,7 +235,7 @@ function ChatUI() {
     const userMessage = message.trim();
 
     // Handle games agent special logic for chess
-    if (isGamesAgent) {
+    if (isGamesAgentFromHook) {
       const lowerMsg = userMessage.trim().toLowerCase();
       if (
         lowerMsg.includes('play chess') ||
@@ -224,7 +250,7 @@ function ChatUI() {
 
     // Use the message handler hook for all other messages
     await handleSendMessage(userMessage, fileInfo, convId);
-  }, [agentId, user, isGamesAgent, handleChessTrigger, handleSendMessage, ensureConversation]);
+  }, [agentId, user, isGamesAgentFromHook, handleChessTrigger, handleSendMessage, ensureConversation]);
 
 
   // --- Agent switch handoff logic ---
@@ -426,7 +452,7 @@ function ChatUI() {
                         />
                       </div>
                       {/* Chessboard for Games Agent - Only show when game is active and chessPosition is set */}
-                      {isGamesAgent && gameState.isActive && chessPosition && (
+                      {isGamesAgentFromHook && gameState.isActive && chessPosition && (
                         <div className="chess-game-container">
                           <ChessboardComponent
                             onMove={(move) => {

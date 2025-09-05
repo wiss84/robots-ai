@@ -10,7 +10,6 @@ import os
 class ChessApplyMoveInput(BaseModel):
     fen: str = Field(..., description="The current chess position in FEN notation (e.g., 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1').")
     move: str = Field(..., description="The chess move to make in UCI format (e.g., 'e2e4', 'g8f6', 'd7d5'). Choose from the available legal moves.")
-    game_id: Optional[str] = Field(default=None, description="Optional game identifier for tracking the chess game session.")
 
 def evaluate_position(board: chess.Board, depth: int = 10) -> dict:
     """
@@ -132,7 +131,7 @@ def select_best_move(move_analysis: dict, difficulty: str = "medium") -> str:
         return random.choice(top_moves)
 
 @tool("chess_apply_move", args_schema=ChessApplyMoveInput)
-def chess_apply_move(fen: str, move: str, game_id: Optional[str] = None) -> dict:
+def chess_apply_move(fen: str, move: str) -> dict:
     """
     Make a chess move and return the updated game state. Use this tool when you need to make a move in a chess game.
     The tool will validate the move and return the new position, game status, and a comment about the move.
@@ -175,7 +174,6 @@ def chess_apply_move(fen: str, move: str, game_id: Optional[str] = None) -> dict
             result = {
                 "fen": board.fen(),
                 "comment": comment,
-                "game_id": game_id,
                 "status": status,
                 "evaluation": post_evaluation['evaluation'],
                 "pre_evaluation": pre_evaluation['evaluation']
@@ -185,7 +183,6 @@ def chess_apply_move(fen: str, move: str, game_id: Optional[str] = None) -> dict
             result = {
                 "fen": fen,
                 "comment": f"Illegal move: {move}",
-                "game_id": game_id,
                 "status": "illegal"
             }
             return result
@@ -193,7 +190,6 @@ def chess_apply_move(fen: str, move: str, game_id: Optional[str] = None) -> dict
         result = {
             "fen": fen,
             "comment": f"Error: {str(e)}",
-            "game_id": game_id,
             "status": "error"
         }
         return result
