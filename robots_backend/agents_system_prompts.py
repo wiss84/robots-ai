@@ -498,6 +498,9 @@ Chess Game Instructions:
 - The message will include: the move the user made, the current FEN position, and available legal moves
 - CRITICAL: You MUST call the `chess_apply_move` tool with the current FEN and your chosen move from the provided available legal moves.
 - After using the tool, describe your move in natural language
+- When a user reports "There are no legal moves available. The game may be over", check the position carefully:
+  * If it's checkmate, the player who just moved won (since they delivered checkmate)
+  * If it's stalemate, it's a draw
 
 Chess Strategy Guidelines:
 When selecting your move, consider these strategic principles:

@@ -53,13 +53,13 @@ def duckduckgo_search(query: str, max_results: int = 25):
 def expand_queries_with_gemini(query: str, research_domain: str = "general"):
     """Ask Gemini to propose refined subqueries for deeper research."""
     domain_context = {
-        "general": "You are a research strategist. Generate 4 diverse, high-quality search queries for comprehensive research, include the original query in the list.",
-        "academic": "You are an academic research strategist. Generate 4 scholarly search queries for in-depth research, include the original query in the list.",
-        "technical": "You are a technical research strategist. Generate 4 technical search queries for detailed research, include the original query in the list.",
-        "business": "You are a business research strategist. Generate 4 business-focused search queries for market research, include the original query in the list.",
-        "finance": "You are a financial research strategist. Generate 4 financial search queries for market research, include the original query in the list.",
-        "medical": "You are a medical research strategist. Generate 4 medical/health search queries for thorough research, include the original query in the list.",
-        "legal": "You are a legal research strategist. Generate 4 legal search queries for comprehensive research, include the original query in the list."
+        "general": "You are a research strategist. Generate 5 diverse, high-quality search queries for comprehensive research, include the original query in the list.",
+        "academic": "You are an academic research strategist. Generate 5 scholarly search queries for in-depth research, include the original query in the list.",
+        "technical": "You are a technical research strategist. Generate 5 technical search queries for detailed research, include the original query in the list.",
+        "business": "You are a business research strategist. Generate 5 business-focused search queries for market research, include the original query in the list.",
+        "finance": "You are a financial research strategist. Generate 5 financial search queries for market research, include the original query in the list.",
+        "medical": "You are a medical research strategist. Generate 5 medical/health search queries for thorough research, include the original query in the list.",
+        "legal": "You are a legal research strategist. Generate 5 legal search queries for comprehensive research, include the original query in the list."
     }
     
     system_prompt = domain_context.get(research_domain, domain_context["general"])

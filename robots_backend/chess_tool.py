@@ -151,7 +151,11 @@ def chess_apply_move(fen: str, move: str) -> dict:
             status = "active"
             if board.is_checkmate():
                 status = "checkmate"
-                comment = "Checkmate! Game over."
+                # Determine who delivered checkmate based on whose turn it is next
+                # If it's white's turn but black just moved, black delivered checkmate
+                # If it's black's turn but white just moved, white delivered checkmate
+                winner = "black" if board.turn else "white"
+                comment = f"Checkmate! {winner.capitalize()} wins."
             elif board.is_stalemate():
                 status = "stalemate"
                 comment = "Stalemate! Game drawn."

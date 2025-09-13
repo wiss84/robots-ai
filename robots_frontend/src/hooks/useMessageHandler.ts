@@ -98,6 +98,12 @@ export const useMessageHandler = ({
     const isHiddenCloseGameMessage = userMessage.includes('decided to close the current chess game') && 
                                     userMessage.includes('please acknowledge it');
     
+    // Check if this is a game over message that shouldn't be displayed in UI
+    const isHiddenGameOverMessage = userMessage.includes('I just made the move') && 
+                                   userMessage.includes('The current position is') && 
+                                   userMessage.includes('There are no legal moves available') &&
+                                   userMessage.includes('game may be over');
+    
     // Handle file attachments
     if (fileInfo) {
       const isImage = fileInfo.content_type?.startsWith('image/');
@@ -138,7 +144,7 @@ export const useMessageHandler = ({
     }
     
     // Add user message to UI immediately (unless it's a hidden chess message)
-    if (!isHiddenChessMessage && !isHiddenChessStartMessage && !isHiddenNewGameMessage && !isHiddenCloseGameMessage) {
+    if (!isHiddenChessMessage && !isHiddenChessStartMessage && !isHiddenNewGameMessage && !isHiddenCloseGameMessage && !isHiddenGameOverMessage) {
       setMessages((prev: ChatMessage[]) => [...prev, chatMessage]);
     } else {
       console.log('Skipping UI display for hidden chess message');

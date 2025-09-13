@@ -226,7 +226,10 @@ export const useChessGame = ({
       }));
       
       // Send a message to the agent informing it that the game may be over
-      const gameOverMessage = `I just made the move ${move}. The current position is ${fenToUse}. There are no legal moves available. The game may be over (checkmate or stalemate). Please respond appropriately and congratulate the winner or acknowledge the draw.`;
+      const gameOverMessage = `I just made the move ${move}. The current position is ${fenToUse}. There are no legal moves available. The game may be over (checkmate or stalemate). ${userName} may have won. Please respond appropriately and congratulate the winner or acknowledge the draw.`;
+      
+      // Add user-friendly message to UI to show who made the last move
+      // setMessages(prev => [...prev, { role: 'user', content: `I played ${move}` }]);
       
       if (handleSendMessageRef.current) {
         // Send the game over message to the agent
