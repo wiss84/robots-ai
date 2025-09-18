@@ -73,6 +73,27 @@ export const usePoseManager = ({
     }
   }, [messages]);
 
+  // Set thinking pose when user types in the chat input
+  useEffect(() => {
+    const textarea = document.querySelector('textarea.chat-input') as HTMLTextAreaElement | null;
+    if (!textarea) return;
+
+    const handleInput = () => {
+      if (loadingMessages) return;
+      const hasText = textarea.value.trim().length > 0;
+      if (hasText) setPose('thinking');
+      // Do not force a pose when cleared; let other effects control it
+    };
+
+    textarea.addEventListener('input', handleInput);
+    textarea.addEventListener('focus', handleInput);
+
+    return () => {
+      textarea.removeEventListener('input', handleInput);
+      textarea.removeEventListener('focus', handleInput);
+    };
+  }, [loadingMessages]);
+
   // Debug game state for games agent
   useEffect(() => {
     if (isGamesAgent) {

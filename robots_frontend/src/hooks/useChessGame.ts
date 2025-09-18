@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { parseChessResponse } from '../utils/chessParser';
 
 interface GameState {
@@ -56,7 +56,7 @@ export const useChessGame = ({
   const isGamesAgent = agentId === 'games';
 
   // Chess response handler for useMessageHandler callback
-  const handleChessResponse = async (response: string, convId: string) => {
+  const handleChessResponse = useCallback(async (response: string, convId: string) => {
     // Parse agent response using chess parser utility
     const chessResult = parseChessResponse(response, isGamesAgent);
     
@@ -100,7 +100,7 @@ export const useChessGame = ({
         ]);
       }
     }
-  };
+  }, [agentId, isGamesAgent, setMessages, supabase, user]);
 
   // Add a helper to generate a UUID (if not already present)
   function generateUUID() {
@@ -112,7 +112,7 @@ export const useChessGame = ({
   }
 
   // Reset chess state helper
-  const resetChessState = async () => {
+  const resetChessState = useCallback(async () => {
     setGameState({ isActive: true, isAgentTurn: false, gameStatus: 'active' });
     setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     
@@ -133,16 +133,16 @@ export const useChessGame = ({
         setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of new chess game.' }]);
       }
     }
-  };
+  }, [agentId, conversationId, isGamesAgent, setMessages, supabase, user, userName]);
 
   // Add a helper to clear chess state (set inactive)
-  const clearChessState = () => {
+  const clearChessState = useCallback(() => {
     setGameState({ isActive: false, isAgentTurn: false, gameStatus: 'idle' });
     setChessPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-  };
+  }, []);
 
   // When user types 'play chess' or 'start chess', trigger chess mode in the frontend only
-  const handleChessTrigger = async () => {
+  const handleChessTrigger = useCallback(async () => {
     if (!user || !agentId) return;
     // Only create a new conversation if one doesn't exist
     let convId = conversationId;
@@ -179,7 +179,7 @@ export const useChessGame = ({
     if (res.ok) {
       // Legal moves are fetched but not stored in state since they're not used
     }
-  };
+  }, [agentId, conversationId, isGamesAgent, supabase, user, userName]);
 
   // Update handleChessMove to use unified message handler
   const handleChessMove = async (move: string, newFen?: string) => {
@@ -267,7 +267,7 @@ export const useChessGame = ({
   };
 
   // Handler to close the chess game
-  const handleCloseChessGame = async () => {
+  const handleCloseChessGame = useCallback(async () => {
     setGameState({ ...gameState, isActive: false });
     
     // Add user-friendly message to UI
@@ -286,7 +286,7 @@ export const useChessGame = ({
         setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not notify agent of chess game closure.' }]);
       }
     }
-  };
+  }, [agentId, conversationId, gameState, isGamesAgent, setMessages, supabase, user, userName]);
 
   return {
     chessPosition,
