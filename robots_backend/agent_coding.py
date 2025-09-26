@@ -231,7 +231,8 @@ graph = builder.compile(checkpointer=memory)
 @router.post("/ask")
 def ask_coding_agent(
     message: str = Body(..., embed=True), 
-    conversation_id: str = Body(None, embed=True)
+    conversation_id: str = Body(None, embed=True),
+    conversation_summary: str = Body(None, embed=True),
 ):
     # Use provided conversation_id or create a new one
     if not conversation_id:
@@ -242,7 +243,13 @@ def ask_coding_agent(
     # Create initial state with explicit conversation context for tool calls
     system_prompt = get_system_prompt()
     conversation_context = SystemMessage(content=f"[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments.")
-    state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=message)]}
+
+    # Add conversation summary to message if provided
+    final_message = message
+    if conversation_summary:
+        final_message = f"[Previous Conversation Summary: {conversation_summary}]\n\n{message}"
+
+    state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=final_message)]}
     
     try:
         result = graph.invoke(state, config=config)
@@ -295,6 +302,7 @@ from fastapi.responses import StreamingResponse
 async def ask_coding_agent_stream(
     message: str = Body(..., embed=True),
     conversation_id: str = Body(None, embed=True),
+    conversation_summary: str = Body(None, embed=True),
 ):
     """
     Server-Sent Events (SSE) streaming endpoint for the coding agent.
@@ -315,7 +323,13 @@ async def ask_coding_agent_stream(
         # Create initial state with explicit conversation context for tool calls
         system_prompt = get_system_prompt()
         conversation_context = SystemMessage(content=f"[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments.")
-        state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=message)]}
+
+        # Add conversation summary to message if provided
+        final_message = message
+        if conversation_summary:
+            final_message = f"[Previous Conversation Summary: {conversation_summary}]\n\n{message}"
+
+        state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=final_message)]}
 
         async def event_generator():
             try:

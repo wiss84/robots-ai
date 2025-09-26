@@ -138,6 +138,7 @@ def ask_news_agent(
 async def ask_news_agent_stream(
     message: str = Body(..., embed=True),
     conversation_id: str = Body(None, embed=True),
+    conversation_summary: str = Body(None, embed=True),
 ):
     """
     Server-Sent Events (SSE) streaming endpoint for the news agent.
@@ -155,8 +156,14 @@ async def ask_news_agent_stream(
             "configurable": {"thread_id": conversation_id},
             "recursion_limit": 50
         }
+
+        # Add conversation summary to message if provided
+        final_message = message
+        if conversation_summary:
+            final_message = f"[Previous Conversation Summary: {conversation_summary}]\n\n{message}"
+
         # Create initial state
-        state = {"messages": [HumanMessage(content=message)]}
+        state = {"messages": [HumanMessage(content=final_message)]}
 
         async def event_generator():
             try:

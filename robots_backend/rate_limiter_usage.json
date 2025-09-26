@@ -1,33 +1,28 @@
 {
   "gemini-2.0-flash-lite": {
-    "requests_this_minute": 6,
-    "tokens_this_minute": 1200,
-    "requests_today": 35,
-    "last_minute_reset": 1758214275.598644,
-    "last_day_reset": 1758212066.7451322,
+    "requests_this_minute": 1,
+    "tokens_this_minute": 200,
+    "requests_today": 1,
+    "last_minute_reset": 1758907133.8050761,
+    "last_day_reset": 1758905937.8064342,
     "request_timestamps": [
-      1758214278.5497856,
-      1758214284.9227765,
-      1758214289.1000268,
-      1758214299.486059,
-      1758214303.749284,
-      1758214308.0422306
+      1758907140.429665
     ]
   },
   "gemini-2.5-flash-lite-preview-06-17": {
     "requests_this_minute": 0,
     "tokens_this_minute": 0,
     "requests_today": 0,
-    "last_minute_reset": 1758212066.7451322,
-    "last_day_reset": 1758212066.7451322,
+    "last_minute_reset": 1758905937.8064342,
+    "last_day_reset": 1758905937.8064342,
     "request_timestamps": []
   },
   "gemini-2.5-flash": {
     "requests_this_minute": 0,
     "tokens_this_minute": 0,
     "requests_today": 0,
-    "last_minute_reset": 1758212066.7451322,
-    "last_day_reset": 1758212066.7451322,
+    "last_minute_reset": 1758905937.8064342,
+    "last_day_reset": 1758905937.8064342,
     "request_timestamps": []
   }
 }

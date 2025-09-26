@@ -208,7 +208,8 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
       },
       body: JSON.stringify({
         message: agentMessage,
-        conversation_id: convId
+        conversation_id: convId,
+        conversation_summary: conversationSummary
       }),
       signal: controller.signal
     });
