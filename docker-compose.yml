@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: ./robots_backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      # Mount uploaded files directory for persistence
+      - ./uploaded_files:/app/uploaded_files
+      # Mount the existing .env file from backend directory
+      - ./robots_backend/.env:/app/.env:ro
+    networks:
+      - robots-ai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend service (development mode with hot reload)
+  frontend:
+    build:
+      context: ./robots_frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount source code for hot reloading
+      - ./robots_frontend/src:/app/src
+      - ./robots_frontend/public:/app/public
+      # Mount package files for dependency changes
+      - ./robots_frontend/package.json:/app/package.json
+      - ./robots_frontend/package-lock.json:/app/package-lock.json
+      # Mount the existing frontend .env file
+      - ./robots_frontend/.env:/app/.env:ro
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    networks:
+      - robots-ai-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  robots-ai-network:
+    driver: bridge
+
+volumes:
+  uploaded_files:
+    driver: local

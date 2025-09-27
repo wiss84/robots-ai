@@ -283,6 +283,13 @@ build/
 dist/
 *.egg-info/
 
+# Docker
+.dockerignore
+.docker/
+
+# Docker volumes and containers
+/docker/
+
 # Environment specific
 .env.production
 .env.staging

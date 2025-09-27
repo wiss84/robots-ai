@@ -166,9 +166,27 @@ HeiGIT_API_KEY='your_heigit_api_key'
 # RealtyUS API for real estate listings (USA only, free with limited usage)
 RAPIDAPI_KEY='your_rapidapi_key'
 
+# Supabase URL & service role key (found under your supabase's project : API keys, Data API)
+SUPABASE_URL='your_supabase_url'
+SUPABASE_SERVICE_ROLE_KEY='your_supabase_service_role_key'
+
 # CORS Settings
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
+
+## Doker installation (optional)
+If Docker isn't installed:
+1. Download from: https://docs.docker.com/desktop/install/windows-install/
+2. Install and start Docker Desktop (after successful installation and restart you might get a message to update or install your wsl(windows subsystem linux)):
+3. Open your terminal or powershell and run:
+wsl --update # to update (if it exist)
+wsl --install # to install (if it doesn't exist)
+
+4. Restart docker desktop
+5. Open a terminal or powershell and run:
+cd Desktop\robots-ai (or wherever you cloned it)
+docker-compose up --build
+6. Run your local server on the browser: http://localhost:5173
 
 ## 🏗️ Project Structure
 

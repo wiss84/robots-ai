@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Backend API service (production)
+  backend:
+    build:
+      context: ./robots_backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      # Mount uploaded files directory for persistence
+      - ./uploaded_files:/app/uploaded_files:ro
+      # Mount environment file
+      - ./robots_backend/.env:/app/.env:ro
+    networks:
+      - robots-ai-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend service (production - optimized build)
+  frontend:
+    build:
+      context: ./robots_frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - robots-ai-network
+    depends_on:
+      - backend
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+networks:
+  robots-ai-network:
+    driver: bridge
+
+volumes:
+  uploaded_files:
+    driver: local
