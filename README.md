@@ -170,7 +170,8 @@ RAPIDAPI_KEY='your_rapidapi_key'
 SUPABASE_URL='your_supabase_url'
 SUPABASE_SERVICE_ROLE_KEY='your_supabase_service_role_key'
 
-# CORS Settings
+# App Settings
+ENVIRONMENT=development
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
