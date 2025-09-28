@@ -46,9 +46,29 @@ class SubTaskManager:
         self.current_task_id: Optional[str] = None
 
         # Persist subtasks under project-root 'task_management' to avoid backend hot-reload
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(base_dir, os.pardir))
-        storage_dir = os.path.join(project_root, "task_management")
+        def get_task_management_dir():
+            """
+            Get task management directory that works both in Docker and outside Docker
+            """
+            # Check if we're running in Docker (common indicators)
+            is_docker = (
+                os.path.exists('/.dockerenv') or
+                os.environ.get('PYTHONPATH') == '/app' or
+                os.getcwd() == '/app'
+            )
+
+            if is_docker:
+                # We're in Docker - use the mounted volume path
+                task_management_dir = "/app/task_management"
+            else:
+                # We're running normally - use relative paths
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.abspath(os.path.join(base_dir, os.pardir))
+                task_management_dir = os.path.join(project_root, "task_management")
+
+            return os.path.abspath(task_management_dir)
+
+        storage_dir = get_task_management_dir()
         os.makedirs(storage_dir, exist_ok=True)
 
         self.storage_file = os.path.join(storage_dir, f"subtasks_{conversation_id}.json")

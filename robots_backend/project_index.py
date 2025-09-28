@@ -29,7 +29,28 @@ last_indexed_time = None
 reindex_timer = None # For debouncing
 
 # Always use uploaded workspace as project root
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace"))
+# Use the same path construction as file_upload.py for consistency
+def get_project_root():
+    """
+    Get project root directory that works both in Docker and outside Docker
+    """
+    # Check if we're running in Docker (common indicators)
+    is_docker = (
+        os.path.exists('/.dockerenv') or
+        os.environ.get('PYTHONPATH') == '/app' or
+        os.getcwd() == '/app'
+    )
+
+    if is_docker:
+        # We're in Docker - use the mounted volume path
+        project_root = "/app/uploaded_files/workspace"
+    else:
+        # We're running normally - use relative paths
+        project_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace")
+
+    return os.path.abspath(project_root)
+
+PROJECT_ROOT = get_project_root()
 # If you want to support multiple workspaces, set this dynamically after upload.
 
 class FileNode(BaseModel):

@@ -7,15 +7,44 @@ from typing import Optional
 from file_processor import file_processor
 from file_filter import FileFilter
 
+def get_upload_directories():
+    """
+    Get upload directories that work both in Docker and outside Docker
+    """
+    # Check if we're running in Docker (common indicators)
+    is_docker = (
+        os.path.exists('/.dockerenv') or 
+        os.environ.get('PYTHONPATH') == '/app' or
+        os.getcwd() == '/app'
+    )
+    
+    if is_docker:
+        # We're in Docker - use the mounted volume paths
+        upload_dir = "/app/uploaded_files"
+        workspace_dir = "/app/uploaded_files/workspace"
+    else:
+        # We're running normally - use relative paths
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files")
+        workspace_dir = os.path.join(upload_dir, "workspace")
+    
+    return upload_dir, workspace_dir
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/project/files", tags=["files"])
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files")
-WORKSPACE_DIR = os.path.join(UPLOAD_DIR, "workspace")
+UPLOAD_DIR, WORKSPACE_DIR = get_upload_directories()
+
+# Ensure directories exist
 os.makedirs(WORKSPACE_DIR, exist_ok=True)
-os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure main upload directory exists
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+logger.info(f"Using UPLOAD_DIR: {UPLOAD_DIR}")
+logger.info(f"Using WORKSPACE_DIR: {WORKSPACE_DIR}")
+logger.info(f"WORKSPACE_DIR exists: {os.path.exists(WORKSPACE_DIR)}")
+if os.path.exists(WORKSPACE_DIR):
+    logger.info(f"WORKSPACE_DIR contents: {os.listdir(WORKSPACE_DIR)}")
 
 @router.get("/content/{file_path:path}")
 async def get_file_content(file_path: str, workspace: bool = False):

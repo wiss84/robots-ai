@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # Backend API service
@@ -11,10 +10,15 @@ services:
     environment:
       - PYTHONPATH=/app
     volumes:
+      # Mount backend source code for development (optional - for hot reload)
+      - ./robots_backend:/app
       # Mount uploaded files directory for persistence
       - ./uploaded_files:/app/uploaded_files
+      # Mount task management directory for persistence
+      - ./task_management:/app/task_management
       # Mount the existing .env file from backend directory
       - ./robots_backend/.env:/app/.env:ro
+    working_dir: /app
     networks:
       - robots-ai-network
     restart: unless-stopped
@@ -42,7 +46,7 @@ services:
       # Mount the existing frontend .env file
       - ./robots_frontend/.env:/app/.env:ro
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://backend:8000
     networks:
       - robots-ai-network
     depends_on:
@@ -52,7 +56,3 @@ services:
 networks:
   robots-ai-network:
     driver: bridge
-
-volumes:
-  uploaded_files:
-    driver: local

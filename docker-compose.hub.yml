@@ -1,22 +1,18 @@
 version: '3.8'
 
 services:
-  # Backend API service (production)
+  # Backend API service (from Docker Hub)
   backend:
-    build:
-      context: ./robots_backend
-      dockerfile: Dockerfile
+    image: yourusername/robots-ai-backend:latest
     ports:
       - "8000:8000"
     environment:
       - PYTHONPATH=/app
     volumes:
       # Mount uploaded files directory for persistence
-      - ./uploaded_files:/app/uploaded_files:ro
+      - ./uploaded_files:/app/uploaded_files
       # Mount task management directory for persistence
-      - ./task_management:/app/task_management:ro
-      # Mount environment file
-      - ./robots_backend/.env:/app/.env:ro
+      - ./task_management:/app/task_management
     networks:
       - robots-ai-network
     restart: always
@@ -33,11 +29,9 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend service (production - optimized build)
+  # Frontend service (from Docker Hub)
   frontend:
-    build:
-      context: ./robots_frontend
-      dockerfile: Dockerfile
+    image: yourusername/robots-ai-frontend:latest
     ports:
       - "80:80"
     networks:

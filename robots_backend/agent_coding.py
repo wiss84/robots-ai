@@ -152,16 +152,24 @@ def create_tool_node_with_fallback(tools: list) -> ToolNode:
         [RunnableLambda(handle_tool_error)], exception_key="error"
     )
 
-def assistant(state: MessagesState):
+def assistant(state: MessagesState, config=None):
     messages = state["messages"]
-    
+
     # Get current LLM instance (may have changed due to rate limiting)
     current_llm = get_llm()
-    
-    # Do not overwrite multimodal content; pass as-is
+
+    # Get conversation_id from the config parameter (this is the proper way in LangGraph)
+    conversation_id = 'unknown'
+    if config and isinstance(config, dict) and 'configurable' in config:
+        conversation_id = config['configurable'].get('thread_id', 'unknown')
+
+    # Ensure we have a proper system message with conversation context
     if not messages or not isinstance(messages[0], SystemMessage):
         system_prompt = get_system_prompt()
+        # Add conversation context to system prompt
+        system_prompt += f"\n\n[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments."
         messages = [SystemMessage(content=system_prompt)] + messages
+
     response = current_llm.bind_tools(tools).invoke(messages)
     return {"messages": [response]}
 
@@ -240,16 +248,15 @@ def ask_coding_agent(
     
     config = {"configurable": {"thread_id": conversation_id}, "recursion_limit": 500}
     
-    # Create initial state with explicit conversation context for tool calls
+    # Create initial state - conversation context will be added by assistant function
     system_prompt = get_system_prompt()
-    conversation_context = SystemMessage(content=f"[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments.")
 
     # Add conversation summary to message if provided
     final_message = message
     if conversation_summary:
         final_message = f"[Previous Conversation Summary: {conversation_summary}]\n\n{message}"
 
-    state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=final_message)]}
+    state = {"messages": [HumanMessage(content=final_message)]}
     
     try:
         result = graph.invoke(state, config=config)
@@ -320,16 +327,15 @@ async def ask_coding_agent_stream(
             "configurable": {"thread_id": conversation_id},
             "recursion_limit": 500
         }
-        # Create initial state with explicit conversation context for tool calls
+        # Create initial state - conversation context will be added by assistant function
         system_prompt = get_system_prompt()
-        conversation_context = SystemMessage(content=f"[CONTEXT] conversation_id={conversation_id}. When you call the tools create_task_plan or manage_task_progress, you MUST include this exact conversation_id in the tool arguments.")
 
         # Add conversation summary to message if provided
         final_message = message
         if conversation_summary:
             final_message = f"[Previous Conversation Summary: {conversation_summary}]\n\n{message}"
 
-        state = {"messages": [SystemMessage(content=system_prompt), conversation_context, HumanMessage(content=final_message)]}
+        state = {"messages": [HumanMessage(content=final_message)]}
 
         async def event_generator():
             try:

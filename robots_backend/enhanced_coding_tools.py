@@ -34,9 +34,29 @@ class CodeRefactorInput(BaseModel):
 class ProjectStructureInput(BaseModel):
     max_depth: int = Field(default=3, description="Maximum depth to traverse")
     include_hidden: bool = Field(default=False, description="Include hidden files and directories")
-    file_types: Optional[List[str]] = Field(None, description="Filter by file types (e.g., ['.py', '.js', '.tsx'])")
+    file_types: Optional[str] = Field(default=None, description="Filter by file types as comma-separated string (e.g., '.py,.js,.tsx' or leave empty for all files)")
 
-WORKSPACE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace")
+def get_workspace_dir():
+    """
+    Get workspace directory that works both in Docker and outside Docker
+    """
+    # Check if we're running in Docker (common indicators)
+    is_docker = (
+        os.path.exists('/.dockerenv') or
+        os.environ.get('PYTHONPATH') == '/app' or
+        os.getcwd() == '/app'
+    )
+
+    if is_docker:
+        # We're in Docker - use the mounted volume path
+        workspace_dir = "/app/uploaded_files/workspace"
+    else:
+        # We're running normally - use relative paths
+        workspace_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace")
+
+    return os.path.abspath(workspace_dir)
+
+WORKSPACE_DIR = get_workspace_dir()
 
 @tool("code_search", args_schema=CodeSearchInput)
 def code_search(query: str, file_pattern: str = "*", search_type: str = "content", case_sensitive: bool = False) -> dict:
@@ -154,12 +174,17 @@ def analyze_file(file_path: str, analysis_type: str = "full") -> dict:
         return {"error": f"Analysis failed: {str(e)}"}
 
 @tool("project_structure_analysis", args_schema=ProjectStructureInput)
-def project_structure_analysis(max_depth: int = 3, include_hidden: bool = False, file_types: Optional[List[str]] = None) -> dict:
+def project_structure_analysis(max_depth: int = 3, include_hidden: bool = False, file_types: Optional[str] = None) -> dict:
     """
     Analyze the entire project structure, providing insights into organization,
     file types, dependencies, and architectural patterns.
     """
     try:
+        # Convert comma-separated string to list
+        file_types_list = None
+        if file_types:
+            file_types_list = [ft.strip() for ft in file_types.split(',') if ft.strip()]
+
         if not os.path.exists(WORKSPACE_DIR):
             return {"error": "Workspace directory not found"}
         
@@ -182,7 +207,7 @@ def project_structure_analysis(max_depth: int = 3, include_hidden: bool = False,
         }
         
         # Build tree structure
-        structure["tree"] = _build_directory_tree(WORKSPACE_DIR, max_depth, include_hidden, file_types)
+        structure["tree"] = _build_directory_tree(WORKSPACE_DIR, max_depth, include_hidden, file_types_list)
         
         # Collect statistics
         for root, dirs, files in os.walk(WORKSPACE_DIR):
@@ -193,7 +218,7 @@ def project_structure_analysis(max_depth: int = 3, include_hidden: bool = False,
             structure["statistics"]["total_directories"] += len(dirs)
             
             for file in files:
-                if file_types and not any(file.endswith(ft) for ft in file_types):
+                if file_types_list and not any(file.endswith(ft) for ft in file_types_list):
                     continue
                 
                 file_path = os.path.join(root, file)

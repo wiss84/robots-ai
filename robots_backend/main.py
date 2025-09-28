@@ -43,9 +43,30 @@ app.include_router(sse_router)
 
 # Serve uploaded files as static
 import os
+
+def get_uploaded_files_directory():
+    """
+    Get uploaded files directory that works both in Docker and outside Docker
+    """
+    # Check if we're running in Docker (common indicators)
+    is_docker = (
+        os.path.exists('/.dockerenv') or
+        os.environ.get('PYTHONPATH') == '/app' or
+        os.getcwd() == '/app'
+    )
+
+    if is_docker:
+        # We're in Docker - use the mounted volume path
+        uploaded_files_dir = "/app/uploaded_files"
+    else:
+        # We're running normally - use relative paths
+        uploaded_files_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files")
+
+    return os.path.abspath(uploaded_files_dir)
+
 app.mount(
     "/uploaded_files",
-    StaticFiles(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files")),
+    StaticFiles(directory=get_uploaded_files_directory()),
     name="uploaded_files"
 )
 

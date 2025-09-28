@@ -28,9 +28,6 @@ RUN pip install -r requirements.txt
 # Copy the entire backend code
 COPY . .
 
-# Create directory for uploaded files (if it doesn't exist)
-RUN mkdir -p /app/uploaded_files
-
 # Expose the port FastAPI runs on
 EXPOSE 8000
 

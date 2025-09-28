@@ -15,8 +15,25 @@ from langchain_core.tools import tool
 # ---------- Internals ----------
 
 def _project_root() -> str:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.abspath(os.path.join(base_dir, os.pardir))
+    """
+    Get project root directory that works both in Docker and outside Docker
+    """
+    # Check if we're running in Docker (common indicators)
+    is_docker = (
+        os.path.exists('/.dockerenv') or
+        os.environ.get('PYTHONPATH') == '/app' or
+        os.getcwd() == '/app'
+    )
+
+    if is_docker:
+        # We're in Docker - use the mounted volume path
+        project_root = "/app"
+    else:
+        # We're running normally - use relative paths
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(base_dir, os.pardir))
+
+    return os.path.abspath(project_root)
 
 def _versions_root() -> str:
     root = os.path.join(_project_root(), "task_management", "versioning")
@@ -24,8 +41,24 @@ def _versions_root() -> str:
     return root
 
 def _workspace_root() -> str:
-    # Match project_index.PROJECT_ROOT without importing (to avoid side effects)
-    return os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace"))
+    """
+    Get workspace root directory that works both in Docker and outside Docker
+    """
+    # Check if we're running in Docker (common indicators)
+    is_docker = (
+        os.path.exists('/.dockerenv') or
+        os.environ.get('PYTHONPATH') == '/app' or
+        os.getcwd() == '/app'
+    )
+
+    if is_docker:
+        # We're in Docker - use the mounted volume path
+        workspace_root = "/app/uploaded_files/workspace"
+    else:
+        # We're running normally - use relative paths
+        workspace_root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploaded_files", "workspace"))
+
+    return os.path.abspath(workspace_root)
 
 def _resolve_input_path(path: str) -> str:
     # Normalize and resolve to workspace root if relative. Accept absolute paths as-is.
