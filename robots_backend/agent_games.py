@@ -1,7 +1,6 @@
 import json
 from fastapi import APIRouter, Body
 from langgraph.graph import StateGraph, START, END, MessagesState
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
@@ -14,17 +13,17 @@ from dotenv import load_dotenv
 from agents_system_prompts import GAMES_AGENT_SYSTEM_PROMPT
 from chess_tool import chess_apply_move, get_legal_moves_for_fen
 
+# Import dynamic model configuration
+from dynamic_model_config import get_current_gemini_model
+
 router = APIRouter(prefix="/games", tags=["games"])
 
 def get_system_prompt():
     return GAMES_AGENT_SYSTEM_PROMPT
 
-# Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0.0,  # Set to 0 for more deterministic behavior
-)
+# Initialize Gemini LLM with dynamic model selection
+def get_llm():
+    return get_current_gemini_model(temperature=0.0)  # Set to 0 for more deterministic behavior
 
 load_dotenv()
 
@@ -177,8 +176,10 @@ def force_chess_tool_execution(state: MessagesState):
     Your reasoning: {ai_reasoning}
     Respond with ONLY the move (like 'e2e4'):
     """
-    
-    move_response = llm.invoke([HumanMessage(content=move_selection_prompt)])
+
+    # Get current LLM instance for dynamic model selection
+    current_llm = get_llm()
+    move_response = current_llm.invoke([HumanMessage(content=move_selection_prompt)])
     selected_move = move_response.content.strip()
     
     if selected_move not in legal_moves:
@@ -217,13 +218,17 @@ def force_chess_tool_execution(state: MessagesState):
     except Exception as e:
         return {"messages": [AIMessage(content=f"Error: {str(e)}")]}
 
-def assistant(state: MessagesState):
+def assistant(state: MessagesState, config=None):
     messages = state["messages"]
+
+    # Get current LLM instance (may have changed due to rate limiting)
+    current_llm = get_llm()
+
     # Do not overwrite multimodal content; pass as-is
     if not messages or not isinstance(messages[0], SystemMessage):
         system_prompt = get_system_prompt()
         messages = [SystemMessage(content=system_prompt)] + messages
-    response = llm.bind_tools(tools).invoke(messages)
+    response = current_llm.bind_tools(tools).invoke(messages)
     return {"messages": [response]}
 
 # Build the graph

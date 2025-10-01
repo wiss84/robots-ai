@@ -18,12 +18,17 @@ TOOL_ERROR_MESSAGE = (
 )
 
 API_QUOTA_ERROR_MESSAGE = (
-    "⚠️ **API Quota Exceeded**\n\n"
-    "I've reached my current usage limit. Please try again in a few minutes, or consider:\n\n"
-    "• Taking a short break between requests\n"
-    "• Rephrasing your question more concisely\n"
-    "• Using a different agent temporarily\n\n"
-    "This is a temporary limitation and should resolve shortly."
+    "⚠️ **Service Temporarily Unavailable**\n\n"
+    "I'm currently unable to process your request due to one of the following reasons:\n\n"
+    "🔹 **All Daily Quotas Exhausted**: You've used all available requests across all models today\n"
+    "   → Please try again tomorrow when quotas reset\n\n"
+    "🔹 **Temporary API Issues**: Google Gemini API is experiencing temporary issues\n"
+    "   → Please wait a few hours and try again\n\n"
+    "💡 **Suggestions**:\n"
+    "• Try again in a few hours or tomorrow\n"
+    "• Check our status page for API updates\n"
+    "• Contact support if the issue persists beyond 24 hours\n\n"
+    "Thank you for your patience! 🚀"
 )
 
 RATE_LIMIT_ERROR_MESSAGE = (

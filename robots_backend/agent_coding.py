@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Body
 from langgraph.graph import StateGraph, START, END, MessagesState
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
@@ -9,8 +8,13 @@ from composio import Composio
 import os
 import time
 import json
+import asyncio
+import logging
 from composio_langchain import LangchainProvider
 from dotenv import load_dotenv
+from rate_limiter import rate_limiter
+
+logger = logging.getLogger(__name__)
 
 # Cancellation registry for streaming conversations
 CANCELLED_THREADS: set[str] = set()
@@ -323,6 +327,33 @@ async def ask_coding_agent_stream(
         if not conversation_id:
             conversation_id = f"thread_{int(time.time())}"
 
+        # Rate limiting check BEFORE starting stream
+        estimated_tokens = rate_limiter.estimate_tokens(message)
+        model_to_use, delay_message = await rate_limiter.check_and_wait_if_needed(estimated_tokens)
+
+        # Extract agent_id from conversation_id if possible (format: thread_{agent_id}_{timestamp})
+        agent_id_for_context = ""
+        if conversation_id and conversation_id.startswith("thread_"):
+            parts = conversation_id.split("_")
+            if len(parts) >= 2:
+                agent_id_for_context = parts[1]  # Extract agent_id from conversation_id
+
+        # Handle rate limiting messages for streaming
+        if delay_message:
+            async def rate_limit_generator():
+                if "Switched to" in delay_message and "summarized" in delay_message:
+                    # Model switch with summarization needed - format for frontend recognition
+                    continue_msg = f"[[CONTINUE]] 🔄 {delay_message} Please retry your request."
+                    yield f"data: {json.dumps({'type': 'token', 'content': continue_msg})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
+                else:
+                    # Rate limit delay needed - format for frontend recognition
+                    seconds = getattr(rate_limiter, "delay_when_approaching_limit", 30)
+                    delay_banner_msg = f"[[DELAY:{seconds}]] ⏳ Rate limit delay: Please wait {seconds} seconds before retrying"
+                    yield f"data: {json.dumps({'type': 'token', 'content': delay_banner_msg})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
+            return StreamingResponse(rate_limit_generator(), media_type="text/event-stream")
+
         config = {
             "configurable": {"thread_id": conversation_id},
             "recursion_limit": 500
@@ -338,6 +369,14 @@ async def ask_coding_agent_stream(
         state = {"messages": [HumanMessage(content=final_message)]}
 
         async def event_generator():
+            tokens_used = 0
+            final_result = None
+            
+            # Track real token usage from streaming events
+            real_input_tokens = 0
+            real_output_tokens = 0
+            real_total_tokens = 0
+            
             try:
                 # If this thread was cancelled before we started, exit immediately
                 if conversation_id in CANCELLED_THREADS:
@@ -345,7 +384,7 @@ async def ask_coding_agent_stream(
                     CANCELLED_THREADS.discard(conversation_id)
                     return
 
-                # Stream events from LangGraph execution
+                # Stream events and also capture the final result for token counting
                 async for event in graph.astream_events(state, config=config, version="v2"):
                     # Allow cooperative cancellation between chunks
                     if conversation_id in CANCELLED_THREADS:
@@ -374,20 +413,126 @@ async def ask_coding_agent_stream(
                             except Exception:
                                 token = None
                         if token:
+                            # Count tokens for rate limiting (rough estimation during streaming)
+                            token_count = len(str(token)) // 4  # 4 chars ≈ 1 token
+                            tokens_used += max(token_count, 1)
                             yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+
+                    # Capture real token usage from chat model end events
+                    if ev == "on_chat_model_end" and node == "assistant":
+                        output_data = data.get("output", {})
+                        
+                        # Try to extract usage_metadata from the output
+                        usage = None
+                        if hasattr(output_data, 'usage_metadata'):
+                            usage = output_data.usage_metadata
+                        elif isinstance(output_data, dict) and "usage_metadata" in output_data:
+                            usage = output_data["usage_metadata"]
+                        
+                        # Extract token counts if usage metadata exists
+                        if usage:
+                            if isinstance(usage, dict):
+                                real_input_tokens += usage.get('input_tokens', 0)
+                                real_output_tokens += usage.get('output_tokens', 0)
+                                real_total_tokens += usage.get('total_tokens', 0)
+                            elif hasattr(usage, 'input_tokens'):
+                                real_input_tokens += getattr(usage, 'input_tokens', 0)
+                                real_output_tokens += getattr(usage, 'output_tokens', 0)
+                                real_total_tokens += getattr(usage, 'total_tokens', 0)
+
+                    # Capture the final result when the graph execution completes
+                    if ev == "on_chain_end" and not final_result:
+                        final_result = data.get("output")
 
                 # Signal completion
                 yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
             except Exception as e:
-                # Stream error and close
-                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+                # CAPTURE API ERRORS HERE for rate limiter processing
+                api_error_encountered = str(e)
+                logger.warning(f"API error in streaming: {api_error_encountered}")
+
+                # Check if this is a quota exceeded error that should trigger model switching
+                if "ResourceExhausted" in api_error_encountered or "quota" in api_error_encountered.lower():
+                    try:
+                        # Try to switch models with conversation context
+                        new_model, switch_message = rate_limiter.record_request_with_error_handling(
+                            model_to_use,
+                            estimated_tokens,
+                            api_error_encountered,
+                            agent_id_for_context,
+                            conversation_id
+                        )
+
+                        # Return error message as token content instead of error event
+                        # This prevents frontend from throwing exception and breaking streaming
+                        if switch_message and "Automatically switched to" in switch_message:
+                            # Format for frontend [[CONTINUE]] pattern recognition
+                            error_content = f"[[CONTINUE]] 🔄 {switch_message} Please retry your request."
+                        elif switch_message == "ALL_MODELS_EXHAUSTED":
+                            # Format for frontend [[CONTINUE]] pattern recognition
+                            error_content = "[[CONTINUE]] 🚫 **All Daily Quotas Exhausted**\\n\\nAll available models have reached their daily request limits. This means:\\n\\n✅ **You've used all 1,500 daily requests** across all models\\n🔄 **Quotas reset daily** at midnight UTC\\n⏰ **Try again tomorrow** for fresh quotas\\n\\nThank you for being a power user! 💪"
+                        elif switch_message and switch_message.startswith("TEMPORARY_API_ISSUE:"):
+                            failed_model = switch_message.split(":")[1]
+                            # Format for frontend [[CONTINUE]] pattern recognition
+                            error_content = f"[[CONTINUE]] 🌐 **Temporary API Issue Detected**\\n\\nGoogle Gemini API is experiencing temporary issues with the {failed_model} model:\\n\\n🔧 **This appears to be a temporary problem** from Google's side\\n⏰ **Please try again in a few hours**\\n🔄 **Quotas will resume normally** once the API issue is resolved\\n\\nThis is not related to your usage limits."
+                        else:
+                            # Format for frontend [[CONTINUE]] pattern recognition
+                            error_content = "[[CONTINUE]] ⚠️ **Service Temporarily Unavailable**\\n\\nI'm currently unable to process your request due to API limitations. Please try again in a few hours or tomorrow."
+
+                        # Return as token instead of error event to prevent frontend exception
+                        yield f"data: {json.dumps({'type': 'token', 'content': error_content})}\n\n"
+                        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"
+                    except Exception as switch_error:
+                        logger.warning(f"Error in model switching: {switch_error}")
+                        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+                else:
+                    # Non-quota error, return as-is
+                    yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            finally:
+                # Use real token counts from streaming events
+                if real_total_tokens > 0:
+                    print(f"✅ Real token usage from streaming events: {real_input_tokens} input + {real_output_tokens} output = {real_total_tokens} total")
+                    rate_limiter.record_request(model_to_use, real_total_tokens)
+                elif tokens_used > 0:
+                    # Fallback to estimated tokens if no real usage available
+                    print(f"⚠️ Using estimated tokens for streaming: {tokens_used}")
+                    rate_limiter.record_request(model_to_use, tokens_used)
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
     except Exception as e:
-        # In case construction failed
-        async def err():
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-        return StreamingResponse(err(), media_type="text/event-stream")
+        # Handle API errors with model switching for streaming
+        if "ResourceExhausted" in str(e) or "quota" in str(e).lower():
+            try:
+                # Extract agent_id from conversation_id if possible
+                agent_id_for_context = ""
+                if conversation_id and conversation_id.startswith("thread_"):
+                    parts = conversation_id.split("_")
+                    if len(parts) >= 2:
+                        agent_id_for_context = parts[1]
+
+                # Try to switch models with conversation context
+                new_model, switch_message = rate_limiter.record_request_with_error_handling(
+                    model_to_use if 'model_to_use' in locals() else rate_limiter.current_model,
+                    estimated_tokens if 'estimated_tokens' in locals() else 1000,
+                    str(e),
+                    agent_id_for_context,
+                    conversation_id
+                )
+
+                async def err():
+                    if switch_message and "Automatically switched to" in switch_message:
+                        yield f"data: {json.dumps({'type': 'error', 'message': '🔄 ' + switch_message})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+                return StreamingResponse(err(), media_type="text/event-stream")
+            except Exception as switch_error:
+                async def err():
+                    yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+                return StreamingResponse(err(), media_type="text/event-stream")
+        else:
+            async def err():
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            return StreamingResponse(err(), media_type="text/event-stream")
 
 @router.post("/ask/interrupt")
 async def interrupt_coding_agent(

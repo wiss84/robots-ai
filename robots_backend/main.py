@@ -168,6 +168,41 @@ def build_multimodal_message(text, image_base64, mime_type='image/webp'):
         {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_base64}"}}
     ]
 
+def extract_real_token_usage(result):
+    """
+    Extract real token counts from LangChain response messages.
+    Only counts tokens from the LAST message (current request).
+
+    Returns:
+        dict with 'input_tokens', 'output_tokens', 'total_tokens'
+    """
+    input_tokens = 0
+    output_tokens = 0
+    total_tokens = 0
+
+    if not result or not isinstance(result, dict) or "messages" not in result:
+        return {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0}
+
+    # Only check the LAST message (the current response)
+    if len(result["messages"]) > 0:
+        last_message = result["messages"][-1]
+        
+        # Only AIMessage objects contain usage metadata
+        if hasattr(last_message, 'usage_metadata') and last_message.usage_metadata:
+            usage = last_message.usage_metadata
+
+            # Extract token counts from usage metadata
+            if isinstance(usage, dict):
+                input_tokens = usage.get('input_tokens', 0)
+                output_tokens = usage.get('output_tokens', 0)
+                total_tokens = usage.get('total_tokens', 0)
+
+    return {
+        'input_tokens': input_tokens,
+        'output_tokens': output_tokens,
+        'total_tokens': total_tokens
+    }
+
 # Unified chat endpoint
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_agent(
@@ -193,6 +228,7 @@ async def chat_with_agent(
         
         # Rate limiting check
         estimated_tokens = rate_limiter.estimate_tokens(message)
+        print(f"📊 Rate limit check - Estimated tokens: {estimated_tokens}")
         model_to_use, delay_message = await rate_limiter.check_and_wait_if_needed(estimated_tokens)
         
         # If there's a delay message, inform the frontend to show countdown and auto-retry
@@ -326,15 +362,33 @@ async def chat_with_agent(
         result = await graph.ainvoke(state, config=config)
 
         print(f"Graph invocation completed, processing result...")
-        
-        # Record the request for rate limiting
-        response_tokens = 0
-        if result and "messages" in result and result["messages"]:
-            last_message = result["messages"][-1]
-            if hasattr(last_message, 'content'):
-                response_tokens = rate_limiter.estimate_tokens(str(last_message.content))
-        
-        rate_limiter.record_request(model_to_use, estimated_tokens + response_tokens)
+
+        # Extract real token counts from the response
+        real_token_usage = extract_real_token_usage(result)
+
+        if real_token_usage['total_tokens'] > 0:
+            # Use actual API token counts
+            actual_tokens = real_token_usage['total_tokens']
+            print(f"✅ Real token usage: {real_token_usage['input_tokens']} input + {real_token_usage['output_tokens']} output = {actual_tokens} total")
+        else:
+            # Fall back to estimation
+            response_tokens = 0
+            if result and "messages" in result and result["messages"]:
+                last_message = result["messages"][-1]
+                if hasattr(last_message, 'content'):
+                    response_tokens = rate_limiter.estimate_tokens(str(last_message.content))
+            actual_tokens = estimated_tokens + response_tokens
+            print(f"⚠️ Estimated token usage: {estimated_tokens} input + {response_tokens} output = {actual_tokens} total")
+
+        # Show current token count before recording (without triggering resets)
+        current_usage = rate_limiter.usage[model_to_use]
+        print(f"📊 Before recording: {model_to_use} - Tokens: {current_usage.tokens_this_minute}/{rate_limiter.model_limits[model_to_use].tokens_per_minute}, Requests: {current_usage.requests_this_minute}/{rate_limiter.model_limits[model_to_use].requests_per_minute}")
+
+        rate_limiter.record_request(model_to_use, actual_tokens)
+
+        # Show updated stats after recording
+        updated_usage = rate_limiter.usage[model_to_use]
+        print(f"📊 After recording: {model_to_use} - Tokens: {updated_usage.tokens_this_minute}/{rate_limiter.model_limits[model_to_use].tokens_per_minute}, Requests: {updated_usage.requests_this_minute}/{rate_limiter.model_limits[model_to_use].requests_per_minute}")
         
         # Extract the response
         if result and "messages" in result and result["messages"]:
@@ -402,15 +456,52 @@ async def chat_with_agent(
         print(f"Error message: {str(e)}")
         traceback.print_exc()
         
-        # Handle specific API quota errors
+        # Handle specific API quota errors with enhanced model switching
         from constants import API_QUOTA_ERROR_MESSAGE, RATE_LIMIT_ERROR_MESSAGE
         error_message = str(e)
+
+        # Use enhanced rate limiter error handling for quota exceeded errors
         if "ResourceExhausted" in error_message or "quota" in error_message.lower():
-            return ChatResponse(
-                response=API_QUOTA_ERROR_MESSAGE,
-                conversation_id=conversation_id if 'conversation_id' in locals() else "error",
-                session_id=session_id if 'session_id' in locals() else "error"
+            # Try to switch models and get updated model information
+            new_model, switch_message = rate_limiter.record_request_with_error_handling(
+                model_to_use if 'model_to_use' in locals() else rate_limiter.current_model,
+                estimated_tokens if 'estimated_tokens' in locals() else 1000,
+                error_message,
+                agent_id if 'agent_id' in locals() else "",
+                conversation_id if 'conversation_id' in locals() else ""
             )
+
+            # If model was switched, return informative message
+            if switch_message and "Automatically switched to" in switch_message:
+                return ChatResponse(
+                    response=f"🔄 {switch_message} Please retry your request.",
+                    conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                    session_id=session_id if 'session_id' in locals() else "error"
+                )
+            else:
+                # Handle different exhaustion scenarios
+                if switch_message == "ALL_MODELS_EXHAUSTED":
+                    # All models have reached daily limits
+                    return ChatResponse(
+                        response="🚫 **All Daily Quotas Exhausted**\n\nAll available models have reached their daily request limits. This means:\n\n✅ **You've used all 1,500 daily requests** across all models\n🔄 **Quotas reset daily** at midnight UTC\n⏰ **Try again tomorrow** for fresh quotas\n\nThank you for being a power user! 💪",
+                        conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                        session_id=session_id if 'session_id' in locals() else "error"
+                    )
+                elif switch_message and switch_message.startswith("TEMPORARY_API_ISSUE:"):
+                    # Temporary API issue, not daily limit exhaustion
+                    failed_model = switch_message.split(":")[1]
+                    return ChatResponse(
+                        response="🌐 **Temporary API Issue Detected**\n\nGoogle Gemini API is experiencing temporary issues with the " + failed_model + " model:\n\n🔧 **This appears to be a temporary problem** from Google's side\n⏰ **Please try again tomorrow or at midnight**\n🔄 **Quotas should resume normally** once the API issue is resolved\n\nThis is not related to your usage limits.",
+                        conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                        session_id=session_id if 'session_id' in locals() else "error"
+                    )
+                else:
+                    # Fallback to the enhanced general message
+                    return ChatResponse(
+                        response=API_QUOTA_ERROR_MESSAGE,
+                        conversation_id=conversation_id if 'conversation_id' in locals() else "error",
+                        session_id=session_id if 'session_id' in locals() else "error"
+                    )
         elif "rate limit" in error_message.lower() or "too many requests" in error_message.lower():
             return ChatResponse(
                 response=RATE_LIMIT_ERROR_MESSAGE,

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Body
 from langgraph.graph import StateGraph, START, END, MessagesState
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
@@ -13,19 +12,17 @@ from agents_system_prompts import TRAVEL_AGENT_SYSTEM_PROMPT
 import time
 from osm_tools import osm_route, osm_poi_search
 
+# Import dynamic model configuration
+from dynamic_model_config import get_current_gemini_model
+
 router = APIRouter(prefix="/travel", tags=["travel"])
 
 def get_system_prompt():
     return TRAVEL_AGENT_SYSTEM_PROMPT
 
-# model="gemini-2.5-flash-lite-preview-06-17"
-# model="gemini-2.0-flash-lite"
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0.1,
-)
+# Initialize Gemini LLM with dynamic model selection
+def get_llm():
+    return get_current_gemini_model(temperature=0.1)
 
 load_dotenv()
 
@@ -73,13 +70,17 @@ def create_tool_node_with_fallback(tools: list) -> ToolNode:
         [RunnableLambda(handle_tool_error)], exception_key="error"
     )
 
-def assistant(state: MessagesState):
+def assistant(state: MessagesState, config=None):
     messages = state["messages"]
+
+    # Get current LLM instance (may have changed due to rate limiting)
+    current_llm = get_llm()
+
     # Do not overwrite multimodal content; pass as-is
     if not messages or not isinstance(messages[0], SystemMessage):
         system_prompt = get_system_prompt()
         messages = [SystemMessage(content=system_prompt)] + messages
-    response = llm.bind_tools(tools).invoke(messages)
+    response = current_llm.bind_tools(tools).invoke(messages)
     return {"messages": [response]}
 
 builder = StateGraph(MessagesState)
