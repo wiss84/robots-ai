@@ -34,6 +34,11 @@ https://youtu.be/Z1i5hmBJz-I
 Watch a quick demo of the (Agent Mode) coding Agent in action:
 https://youtu.be/j2UX84jdfz8
 
+## 🎨 Image Generator Demo
+
+Watch a quick demo of the AI-powered Image Generator Agent in action:
+https://youtu.be/8CLciFL_IcA
+
 ## ✨ Features
 
 ### 🤖 Specialized AI Agents
