@@ -13,7 +13,8 @@ import time
 from typing import Optional
 
 # Import your custom tool
-from tools import generate_image
+# from tools import generate_image
+from image_generation_tool import generate_image_tool
 from file_upload import router as file_upload_router
 
 # Import dynamic model configuration
@@ -35,7 +36,7 @@ composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainPro
 image_search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_IMAGE_SEARCH"])
 
 # Combine both tools
-tools = image_search_tools + [generate_image]
+tools = image_search_tools + [generate_image_tool]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")
@@ -163,7 +164,7 @@ def ask_image_agent(
         # Get the last message from the result
         if result and "messages" in result and result["messages"]:
             last_message = result["messages"][-1]
-            
+
             # Handle different message types
             if isinstance(last_message, AIMessage):
                 response_content = last_message.content
@@ -171,11 +172,11 @@ def ask_image_agent(
                 response_content = last_message.content
             else:
                 response_content = str(last_message.content) if hasattr(last_message, 'content') else str(last_message)
-            
+
             # Check if response is empty and provide fallback
             if not response_content or response_content.strip() == "":
                 response_content = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
-            
+
             return {"response": response_content, "conversation_id": conversation_id}
         else:
             return {"response": "No response generated. Please try again.", "conversation_id": conversation_id}

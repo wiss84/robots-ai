@@ -428,7 +428,7 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
       // If server returned an empty/whitespace response, show Continue fallback banner
       {
         const respStr = typeof data.response === 'string' ? data.response : String(data.response ?? '');
-        if (!respStr || respStr.trim() === '') {
+        if (!respStr || respStr.trim() === '' || (typeof data.response === 'object' && Object.keys(data.response).length === 0)) {
           setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: '[[CONTINUE]] Something went wrong with the previous response. Click Continue to resume the previous task.' }]);
           setPose('wondering');
           setLoadingMessages(false);
@@ -589,19 +589,61 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
         }
       }
 
-      // Check for API quota errors in the response
-      if (data.response && (
-        data.response.includes('API Quota Exceeded') || 
+      // Check if response contains image path
+      if (data.response && typeof data.response === 'string' && data.response.includes('{image_path:')) {
+        // Extract image path from response
+        const imageMatch = data.response.match(/{image_path: ['"]([^'"]+)['"]}/);
+        if (imageMatch) {
+          const filename = imageMatch[1];
+
+          // Remove the image_path part from the displayed text
+          const displayText = data.response.replace(/\n?\n?{image_path: ['"][^'"]+['"]}/g, '').trim();
+
+          setMessages((prev: ChatMessage[]) => [...prev, {
+            role: 'agent',
+            type: 'image',
+            content: displayText || `Here's your generated image: ${filename}`,
+            fileUrl: `/uploaded_files/${filename}`,
+            fileName: filename
+          }]);
+
+          // Save to database
+          if (convId && user) {
+            try {
+              await supabase.from('messages').insert([{
+                conversation_id: convId,
+                user_id: user.id,
+                agent_id: agentId,
+                role: 'agent',
+                content: displayText || `Here's your generated image: ${filename}`,
+                type: 'image',
+                file_url: `/uploaded_files/${filename}`
+              }]);
+            } catch (e) {
+              console.error('Error saving image response to Supabase:', e);
+            }
+          }
+
+          setPose('arms_crossing');
+          setLoadingMessages(false);
+          abortRef.current = null;
+          return;
+        }
+      }
+
+      // Check for API quota errors in the response (only for string responses)
+      if (data.response && typeof data.response === 'string' && (
+        data.response.includes('API Quota Exceeded') ||
         data.response.includes('Rate Limit Reached') ||
         data.response.includes('ResourceExhausted')
       )) {
         // Set error pose and show quota error message
         setPose('wondering');
-        setMessages((prev: ChatMessage[]) => [...prev, { 
-          role: 'agent', 
-          content: data.response 
+        setMessages((prev: ChatMessage[]) => [...prev, {
+          role: 'agent',
+          content: data.response
         }]);
-        
+
         // Save error message to database
         await supabase.from('messages').insert([
           {
@@ -612,7 +654,7 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
             content: data.response
           }
         ]);
-        
+
         setLoadingMessages(false);
         return;
       }
@@ -657,8 +699,10 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
           }
         }
       } else {
-        setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: data.response }]);
-        
+        // Handle regular text response
+        const responseText = typeof data.response === 'string' ? data.response : JSON.stringify(data.response);
+        setMessages((prev: ChatMessage[]) => [...prev, { role: 'agent', content: responseText }]);
+
         // Save agent response to database
         if (convId && user) {
           try {
@@ -669,10 +713,10 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
                 user_id: user.id,
                 agent_id: agentId,
                 role: 'agent',
-                content: data.response
+                content: responseText
               }])
               .select();
-              
+
             if (error) {
               console.error('Error saving agent response to Supabase:', error);
             }

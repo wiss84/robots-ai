@@ -42,7 +42,7 @@ https://youtu.be/j2UX84jdfz8
 - **News Agent**: Real-time news aggregation and analysis
 - **Real Estate Agent**: Property search, market insights, and investment guidance
 - **Travel Agent**: Trip planning, recommendations, and travel assistance
-- **Image Generator**: AI-powered image creation and editing
+- **Image Generator**: AI-powered image creation, image search, and image analysis
 - **Shopping Agent**: Product search, price comparison, and shopping assistance
 - **Games Agent**: Interactive chess gameplay with strategy and analysis
 
@@ -62,10 +62,6 @@ https://youtu.be/j2UX84jdfz8
 - **Service Worker**: Cached assets for faster loading
 
 ## ⚠️ Current Limitations
-
-### Image Generation
-- **Processing Time**: Image generation takes 2-10 minutes depending on the AI Horde queue and model selection
-- **Queue-based System**: Processing time varies based on server load and model popularity
 
 ### Speech Features
 - **Speech-to-Text**: Not yet integrated
@@ -156,9 +152,6 @@ LANGCHAIN_TRACING_V2=true
 LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 LANGCHAIN_API_KEY='your_langchain_api_key'
 LANGCHAIN_PROJECT='your_project_name'
-
-# image generation (100% free, but has queue depends on the model you use.)
-AI_Horde_API_KEY='your_ai_horde_api_key'
 
 # openrouteservice endpoints for maps tools(free with limited refreshable usage per day)
 HeiGIT_API_KEY='your_heigit_api_key'
@@ -491,7 +484,7 @@ Or simply include a link to this repository in your acknowledgments.
 - [OpenStreetMap](https://www.openstreetmap.org/) for map data and routing services
 - [HeiGIT](https://heigit.org/) for OpenRouteService API providing routing and geocoding
 - [RealtyUS](https://rapidapi.com/ntd119/api/realty-us) for real estate listings data
-- [AI Horde](https://aihorde.net/) for free AI image generation services
+- [TraxDinosaur](https://traxdinosaur.github.io/APIs/) for free AI image generation API endpoint services
 - [React](https://reactjs.org/) for the frontend framework
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
 

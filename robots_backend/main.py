@@ -104,7 +104,7 @@ class ChatMessage(BaseModel):
     conversation_summary: Optional[str] = None  # Add conversation summary field
 
 class ChatResponse(BaseModel):
-    response: str
+    response: str | dict  # Allow both string and dict for image responses
     conversation_id: str
     session_id: str
 
@@ -394,20 +394,13 @@ async def chat_with_agent(
         if result and "messages" in result and result["messages"]:
             print(f"Graph execution successful with {len(result['messages'])} messages")
             last_message = result["messages"][-1]
-            
+
             # Handle different message types
             if hasattr(last_message, 'content'):
                 response_content = last_message.content
             else:
                 response_content = str(last_message)
-            
-            # Debug logging for response content type
-            print(f"Response content type: {type(response_content)}")
-            if isinstance(response_content, list):
-                print(f"Response content is a list with {len(response_content)} items")
-                for i, item in enumerate(response_content):
-                    print(f"  Item {i}: {type(item)} - {str(item)[:100]}...")
-            
+
             # Ensure response_content is a string (handle lists, etc.)
             if not isinstance(response_content, str):
                 if isinstance(response_content, list):
@@ -415,31 +408,18 @@ async def chat_with_agent(
                     response_content = '\n'.join([str(item) for item in response_content if item])
                 else:
                     response_content = str(response_content)
-            
+
             # Check if response is empty and provide fallback
             if not response_content or str(response_content).strip() == "":
                 from constants import EMPTY_RESPONSE_MESSAGE
-                print("\n=== EMPTY RESPONSE ANALYSIS ===")
-                print("Graph execution was successful but produced empty content")
-                print(f"Raw result from graph: {result}")
-                if "messages" in result:
-                    print(f"Messages in result: {len(result['messages'])}")
-                    print(f"Last message structure: {vars(result['messages'][-1])}")
-                    print(f"Last message type: {type(result['messages'][-1])}")
-                    print(f"Last message content type: {type(result['messages'][-1].content) if hasattr(result['messages'][-1], 'content') else 'No content attribute'}")
-                print("\nFalling back to default message")
                 response_content = EMPTY_RESPONSE_MESSAGE
-            
-            print(f"Response content length: {len(response_content)}")
-            print(f"Response preview: {response_content[:100]}...")
-            
+
             response = ChatResponse(
                 response=response_content,
                 conversation_id=conversation_id,
                 session_id=session_id
             )
-            
-            print(f"Returning response successfully")
+
             return response
         else:
             print(f"No messages in result, returning fallback")
