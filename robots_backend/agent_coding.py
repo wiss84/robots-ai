@@ -52,7 +52,7 @@ from code_quality_tool import analyze_code_quality, ensure_frontend_configs
 
 load_dotenv()
 
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainProvider())
+composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
 search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_SEARCH"])
 
 router = APIRouter(prefix="/coding", tags=["coding"])

@@ -27,6 +27,9 @@ from rate_limiter import rate_limiter
 # Load environment variables
 load_dotenv()
 
+import logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # Initialize FastAPI app (lifespan removed)
 app = FastAPI(
     title="LangGraph Agents Backend",

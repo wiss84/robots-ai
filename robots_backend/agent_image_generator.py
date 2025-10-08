@@ -4,10 +4,6 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio import Composio
-import os
-from composio_langchain import LangchainProvider
-from dotenv import load_dotenv
 from agents_system_prompts import IMAGE_GENERATOR_AGENT_SYSTEM_PROMPT
 import time
 from typing import Optional
@@ -15,6 +11,7 @@ from typing import Optional
 # Import your custom tool
 # from tools import generate_image
 from image_generation_tool import generate_image_tool
+from composio_tools_filtered import filtered_composio_image_search
 from file_upload import router as file_upload_router
 
 # Import dynamic model configuration
@@ -29,14 +26,8 @@ def get_system_prompt():
 def get_llm():
     return get_current_gemini_model(temperature=0.1)
 
-load_dotenv()
-
-# Get Composio tools
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainProvider())
-image_search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_IMAGE_SEARCH"])
-
-# Combine both tools
-tools = image_search_tools + [generate_image_tool]
+# Combine filtered tool with other tools
+tools = [filtered_composio_image_search] + [generate_image_tool]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

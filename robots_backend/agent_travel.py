@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from agents_system_prompts import TRAVEL_AGENT_SYSTEM_PROMPT
 import time
 from osm_tools import osm_route, osm_poi_search
+from composio_tools_filtered import filtered_composio_image_search
 
 # Import dynamic model configuration
 from dynamic_model_config import get_current_gemini_model
@@ -26,7 +27,7 @@ def get_llm():
 
 load_dotenv()
 
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainProvider())
+composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
 
 # Get multiple search tools for comprehensive real estate assistance
 travel_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
@@ -35,9 +36,8 @@ travel_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
     "COMPOSIO_SEARCH_EXA_SIMILARLINK",
 ])
 
-image_search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_IMAGE_SEARCH"])
 
-tools = travel_tools + image_search_tools + [osm_route, osm_poi_search]
+tools = travel_tools + [filtered_composio_image_search] + [osm_route, osm_poi_search]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

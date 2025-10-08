@@ -40,11 +40,11 @@ UPLOAD_DIR, WORKSPACE_DIR = get_upload_directories()
 os.makedirs(WORKSPACE_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-logger.info(f"Using UPLOAD_DIR: {UPLOAD_DIR}")
-logger.info(f"Using WORKSPACE_DIR: {WORKSPACE_DIR}")
-logger.info(f"WORKSPACE_DIR exists: {os.path.exists(WORKSPACE_DIR)}")
-if os.path.exists(WORKSPACE_DIR):
-    logger.info(f"WORKSPACE_DIR contents: {os.listdir(WORKSPACE_DIR)}")
+# logger.info(f"Using UPLOAD_DIR: {UPLOAD_DIR}")
+# logger.info(f"Using WORKSPACE_DIR: {WORKSPACE_DIR}")
+# logger.info(f"WORKSPACE_DIR exists: {os.path.exists(WORKSPACE_DIR)}")
+# if os.path.exists(WORKSPACE_DIR):
+#     logger.info(f"WORKSPACE_DIR contents: {os.listdir(WORKSPACE_DIR)}")
 
 @router.get("/content/{file_path:path}")
 async def get_file_content(file_path: str, workspace: bool = False):

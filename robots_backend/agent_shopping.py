@@ -25,7 +25,7 @@ def get_llm():
 
 load_dotenv()
 
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), provider=LangchainProvider())
+composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
 
 # Get shopping search tools
 shopping_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
