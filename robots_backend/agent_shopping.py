@@ -4,12 +4,9 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio import Composio
-import os
-from composio_langchain import LangchainProvider
-from dotenv import load_dotenv
 from agents_system_prompts import SHOPPING_AGENT_SYSTEM_PROMPT
 import time
+from composio_tools_filtered import filtered_composio_google_search, filtered_composio_shopping_search
 
 # Import dynamic model configuration
 from dynamic_model_config import get_current_gemini_model
@@ -23,17 +20,7 @@ def get_system_prompt():
 def get_llm():
     return get_current_gemini_model(temperature=0.1)
 
-load_dotenv()
-
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
-
-# Get shopping search tools
-shopping_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
-    "COMPOSIO_SEARCH_SHOPPING_SEARCH",
-    "COMPOSIO_SEARCH_SEARCH",
-])
-
-tools = shopping_tools
+tools = [filtered_composio_google_search, filtered_composio_shopping_search]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

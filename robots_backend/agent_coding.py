@@ -4,13 +4,11 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio import Composio
 import os
 import time
 import json
 import asyncio
 import logging
-from composio_langchain import LangchainProvider
 from dotenv import load_dotenv
 from rate_limiter import rate_limiter
 
@@ -28,7 +26,9 @@ from agent_coding_tools import (
     file_rename_tool,
     project_index_tool,
 )
+from composio_tools_filtered import filtered_composio_google_search
 from send_suggestion_tool import send_suggestion_tool
+
 from enhanced_coding_tools import (
     code_search,
     analyze_file,
@@ -51,9 +51,6 @@ from versioning_tools import (
 from code_quality_tool import analyze_code_quality, ensure_frontend_configs
 
 load_dotenv()
-
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
-search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_SEARCH"])
 
 router = APIRouter(prefix="/coding", tags=["coding"])
 
@@ -102,7 +99,7 @@ tools = [
     ensure_frontend_configs,
     
     # Search tool
-    search_tools[0],
+    filtered_composio_google_search,
 ]
 
 def handle_tool_error(state) -> dict:

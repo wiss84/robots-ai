@@ -27,7 +27,7 @@ def get_llm():
     return get_current_gemini_model(temperature=0.1)
 
 # Combine filtered tool with other tools
-tools = [filtered_composio_image_search] + [generate_image_tool]
+tools = [filtered_composio_image_search,generate_image_tool]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

@@ -4,14 +4,22 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
+from agents_system_prompts import TRAVEL_AGENT_SYSTEM_PROMPT
+import time
+from osm_tools import osm_route, osm_poi_search
+from composio_tools_filtered import filtered_composio_image_search, filtered_composio_google_search, filtered_composio_google_maps_search
+
 from composio import Composio
 import os
 from composio_langchain import LangchainProvider
 from dotenv import load_dotenv
-from agents_system_prompts import TRAVEL_AGENT_SYSTEM_PROMPT
-import time
-from osm_tools import osm_route, osm_poi_search
-from composio_tools_filtered import filtered_composio_image_search
+load_dotenv()
+
+
+# Get Composio tools
+composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
+flight_search = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_FLIGHTS"])
+hotel_search = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_HOTELS"])
 
 # Import dynamic model configuration
 from dynamic_model_config import get_current_gemini_model
@@ -25,19 +33,7 @@ def get_system_prompt():
 def get_llm():
     return get_current_gemini_model(temperature=0.1)
 
-load_dotenv()
-
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
-
-# Get multiple search tools for comprehensive real estate assistance
-travel_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
-    "COMPOSIO_SEARCH_GOOGLE_MAPS_SEARCH",
-    "COMPOSIO_SEARCH_SEARCH",
-    "COMPOSIO_SEARCH_EXA_SIMILARLINK",
-])
-
-
-tools = travel_tools + [filtered_composio_image_search] + [osm_route, osm_poi_search]
+tools = flight_search + hotel_search + [filtered_composio_google_search, filtered_composio_google_maps_search, filtered_composio_image_search,  osm_route, osm_poi_search]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

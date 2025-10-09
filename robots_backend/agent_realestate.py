@@ -4,14 +4,11 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio import Composio
-import os
-from composio_langchain import LangchainProvider
-from dotenv import load_dotenv
 from agents_system_prompts import REALESTATE_AGENT_SYSTEM_PROMPT
 import time
 from osm_tools import osm_route, osm_poi_search
 from RealtyUS_tools import realty_us_search_buy, realty_us_search_rent
+from composio_tools_filtered import filtered_composio_google_search, filtered_composio_google_maps_search
 
 # Import dynamic model configuration
 from dynamic_model_config import get_current_gemini_model
@@ -25,18 +22,8 @@ def get_system_prompt():
 def get_llm():
     return get_current_gemini_model(temperature=0.1)
 
-load_dotenv()
-
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
-
-# Get multiple search tools for comprehensive real estate assistance
-real_estate_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=[
-    "COMPOSIO_SEARCH_GOOGLE_MAPS_SEARCH",
-    "COMPOSIO_SEARCH_SEARCH",
-])
-
 # Integrate RealtyUS tools
-tools = real_estate_tools + [osm_route, osm_poi_search, realty_us_search_buy, realty_us_search_rent]
+tools = [filtered_composio_google_maps_search, filtered_composio_google_search,osm_route, osm_poi_search, realty_us_search_buy, realty_us_search_rent]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

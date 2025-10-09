@@ -5,13 +5,10 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from composio import Composio
-import os
 import time
-from composio_langchain import LangchainProvider
-from dotenv import load_dotenv
 from agents_system_prompts import GAMES_AGENT_SYSTEM_PROMPT
 from chess_tool import chess_apply_move, get_legal_moves_for_fen
+from composio_tools_filtered import filtered_composio_google_search
 
 # Import dynamic model configuration
 from dynamic_model_config import get_current_gemini_model
@@ -25,19 +22,8 @@ def get_system_prompt():
 def get_llm():
     return get_current_gemini_model(temperature=0.0)  # Set to 0 for more deterministic behavior
 
-load_dotenv()
-
-# Initialize Composio toolset
-composio = Composio(api_key=os.getenv('COMPOSIO_API_KEY'), allow_tracking=False, timeout=60, provider=LangchainProvider())
-
-# Get search tools
-search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_SEARCH"])
-
-# Register chess tools
-chess_tools = [chess_apply_move]
-
 # Combine all tools
-tools = search_tools + chess_tools
+tools = [filtered_composio_google_search, chess_apply_move]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")
