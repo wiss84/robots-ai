@@ -1,37 +1,32 @@
 {
   "gemini-2.5-flash-lite-preview-06-17": {
-    "requests_today": 22,
-    "last_day_reset": "2025-10-09T00:00:02.683151",
-    "request_records": [
-      {
-        "timestamp": "2025-10-09T23:18:45.573165",
-        "tokens": 60413
-      }
-    ]
+    "requests_today": 27,
+    "last_day_reset": "2025-10-10T14:07:30.933559",
+    "request_records": []
   },
   "gemini-2.5-flash-lite-preview-09-2025": {
     "requests_today": 0,
-    "last_day_reset": "2025-10-09T00:00:02.683151",
+    "last_day_reset": "2025-10-10T14:07:30.933559",
     "request_records": []
   },
   "gemini-2.0-flash-lite": {
     "requests_today": 0,
-    "last_day_reset": "2025-10-09T00:00:02.683151",
+    "last_day_reset": "2025-10-10T14:07:30.933559",
     "request_records": []
   },
   "gemini-2.0-flash-lite-001": {
     "requests_today": 0,
-    "last_day_reset": "2025-10-09T00:00:02.683151",
+    "last_day_reset": "2025-10-10T14:07:30.933559",
     "request_records": []
   },
   "gemini-2.5-flash-lite": {
     "requests_today": 0,
-    "last_day_reset": "2025-10-09T00:00:02.683151",
+    "last_day_reset": "2025-10-10T14:07:30.933559",
     "request_records": []
   },
   "gemini-2.5-flash": {
     "requests_today": 0,
-    "last_day_reset": "2025-10-09T00:00:02.683151",
+    "last_day_reset": "2025-10-10T14:07:30.933559",
     "request_records": []
   }
 }

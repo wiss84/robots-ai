@@ -39,6 +39,54 @@ function removeMapJsonBlocks(text: string): string {
   return cleaned.trim();
 }
 
+// Utility to filter out unwrapped URLs while preserving properly formatted ones
+function filterUnwrappedUrls(text: string): string {
+  // Store all properly wrapped URLs from all valid formats
+  const properUrls = new Set<string>();
+  
+  // 1. Extract URLs from citations
+  const citationPattern = /<cite>\[(Source|Sources):\s*([^\]]+)\]<\/cite>/g;
+  text.replace(citationPattern, (_match, _type, urls: string) => {
+    urls.split(', ').forEach((url: string) => properUrls.add(url.trim()));
+    return '';
+  });
+
+  // 2. Extract URLs from markdown images
+  const imagePattern = /!\[[^\]]*\]\(([^)]+)\)/g;
+  text.replace(imagePattern, (_match, url: string) => {
+    properUrls.add(url.trim());
+    return '';
+  });
+
+  // 3. Extract URLs from JSON code blocks
+  const jsonPattern = /```json\s*[\s\S]*?```/g;
+  const jsonBlocks = text.match(jsonPattern) || [];
+  jsonBlocks.forEach(block => {
+    // Don't process the URLs inside JSON blocks, preserve them as they're properly wrapped
+    properUrls.add(block);
+  });
+
+  // Now process the text and remove unwrapped URLs
+  return text.replace(/https?:\/\/[^\s<>"\](){}]+/g, (match) => {
+    // Check if this URL is part of any proper format
+    const position = text.indexOf(match);
+    const surrounding = text.substring(Math.max(0, position - 20), position + match.length + 20);
+    
+    // Keep URL if it's part of:
+    if (
+      surrounding.includes('<cite') || // Citation
+      surrounding.includes('![') ||    // Image
+      surrounding.includes('```json')  // JSON block
+    ) {
+      console.log('Keeping properly wrapped URL:', match);
+      return match;
+    }
+    
+    console.log('Removing unwrapped URL:', match);
+    return '';
+  });
+}
+
 // Utility to process citation tags into numbered links with hover tooltips
 function processCitations(text: string): string {
   const sources: string[] = [];
@@ -106,11 +154,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           ? autoWrapJsonResponse(msg.content)
           : msg.content;
 
+      // Filter out unwrapped URLs from agent messages
+      const filteredContent = msg.role === 'agent' 
+        ? filterUnwrappedUrls(processedContent)
+        : processedContent;
+
       // Remove JSON code blocks for markdown rendering only for travel and realestate agents
       const contentWithoutJson =
         msg.role === 'agent' && (agentId === 'travel' || agentId === 'realestate')
-          ? removeMapJsonBlocks(processedContent)
-          : processedContent;
+          ? removeMapJsonBlocks(filteredContent)
+          : filteredContent;
       
       // Show deep search container for all user messages to finance agent
       // Only the latest user message container should actively listen to SSE

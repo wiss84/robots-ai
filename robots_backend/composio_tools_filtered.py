@@ -1,5 +1,6 @@
 # Import Pydantic for schema definition
 from pydantic import BaseModel, Field
+from typing import Optional
 from langchain_core.tools import tool
 from composio import Composio
 import os
@@ -15,6 +16,8 @@ google_search = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=
 google_maps_search = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_GOOGLE_MAPS_SEARCH"])
 news_search_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_NEWS_SEARCH"])
 shopping_tools = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_SHOPPING_SEARCH"])
+flight_search = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_FLIGHTS"])
+hotel_search = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), tools=["COMPOSIO_SEARCH_HOTELS"])
 
 # -------------------------------------- Google Search Image Tool --------------------------------------
 
@@ -451,3 +454,388 @@ def filtered_composio_shopping_search(query: str, num_results: int = 10) -> dict
     Merges categorized and direct results, removes duplicates by title, and returns unique products
     with only essential data: old_price, price, rating, tag, thumbnail, title, and delivery (if available)."""
     return filtered_shopping_search(query, num_results)
+
+# -------------------------------------- Composio Flight Search Tool --------------------------------------
+
+# Input schema for the filtered flight search tool
+class FilteredFlightSearchInput(BaseModel):
+    arrival_id: str = Field(description="Destination airport IATA code (3-letter uppercase code). Must be a valid airport code.")
+    departure_id: str = Field(description="Origin airport IATA code (3-letter uppercase code). Must be a valid airport code.")
+    outbound_date: str = Field(description="Departure date in YYYY-MM-DD format. Must be a future date.")
+    adults: Optional[int] = Field(default=1, description="Number of adult passengers (18+ years old).")
+    children: Optional[int] = Field(default=0, description="Number of child passengers (2-11 years old).")
+    infants: Optional[int] = Field(default=0, description="Number of infant passengers (under 2 years old).")
+    currency: Optional[str] = Field(default=None, description="Currency for pricing (3-letter currency code).")
+    gl: Optional[str] = Field(default=None, description="Country code for results (ISO 3166-1 alpha-2).")
+    hl: Optional[str] = Field(default=None, description="Language code for results (ISO 639-1).")
+    return_date: Optional[str] = Field(default=None, description="Return date in YYYY-MM-DD format. Must be after outbound_date. Leave empty for one-way flights.")
+    travel_class: Optional[int] = Field(default=1, description="Travel class preference. 1 = Economy, 2 = Premium Economy, 3 = Business, 4 = First Class.")
+    flight_type: Optional[int] = Field(default=None, description="Flight type filter. 1 = Connecting flights (with layovers), 2 = Direct flights (no layovers). Leave empty for all flights.")
+
+# Custom wrapper for filtered flight search
+def filtered_flight_search(
+    arrival_id: str,
+    departure_id: str,
+    outbound_date: str,
+    adults: int = 1,
+    children: int = 0,
+    infants: int = 0,
+    currency: Optional[str] = None,
+    gl: Optional[str] = None,
+    hl: Optional[str] = None,
+    return_date: Optional[str] = None,
+    travel_class: int = 1,
+    flight_type: Optional[int] = None
+) -> dict:
+    """Wrapper that filters COMPOSIO_SEARCH_FLIGHTS results to reduce token usage"""
+    # Get the raw tool
+    raw_tool = None
+    for tool_item in flight_search:
+        if tool_item.name == "COMPOSIO_SEARCH_FLIGHTS":
+            raw_tool = tool_item
+            break
+    if not raw_tool:
+        return {"error": "COMPOSIO_SEARCH_FLIGHTS tool not found", "successful": False}
+    try:
+        # Build the input dictionary with provided parameters
+        tool_input = {
+            "arrival_id": arrival_id,
+            "departure_id": departure_id,
+            "outbound_date": outbound_date,
+            "adults": adults,
+            "children": children,
+            "infants": infants,
+        }
+        
+        # Add optional parameters if provided
+        if currency:
+            tool_input["currency"] = currency
+        if gl:
+            tool_input["gl"] = gl
+        if hl:
+            tool_input["hl"] = hl
+        if return_date:
+            tool_input["return_date"] = return_date
+        if travel_class:
+            tool_input["travel_class"] = travel_class
+        
+        # Call the original tool
+        if hasattr(raw_tool, 'invoke'):
+            result = raw_tool.invoke(tool_input)
+        else:
+            result = raw_tool.func(**tool_input)
+        
+        # Extract only what we need
+        if isinstance(result, dict) and "data" in result:
+            data = result["data"]
+            filtered_result = {
+                "data": {
+                    "results": {}
+                },
+                "successful": True
+            }
+            
+            # Process airports
+            if "results" in data and "airports" in data["results"]:
+                airports = data["results"]["airports"]
+                filtered_airports = {}
+                
+                # Process arrival airports
+                if isinstance(airports, dict) and "arrival" in airports:
+                    arrival_list = airports["arrival"]
+                    if isinstance(arrival_list, list):
+                        filtered_airports["arrival"] = [
+                            {key: airport[key] for key in ["airport", "city", "country", "country_code"] if key in airport}
+                            for airport in arrival_list
+                            if isinstance(airport, dict)
+                        ]
+                
+                # Process departure airports
+                if isinstance(airports, dict) and "departure" in airports:
+                    departure_list = airports["departure"]
+                    if isinstance(departure_list, list):
+                        filtered_airports["departure"] = [
+                            {key: airport[key] for key in ["airport", "city", "country", "country_code"] if key in airport}
+                            for airport in departure_list
+                            if isinstance(airport, dict)
+                        ]
+                
+                if filtered_airports:
+                    filtered_result["data"]["results"]["airports"] = filtered_airports
+            
+            # Helper function to filter flight item
+            def filter_flight_item(flight):
+                if isinstance(flight, dict):
+                    filtered_flight = {key: flight[key] for key in ["flights", "price", "total_duration", "type"] if key in flight}
+                    # Add layovers if available
+                    if "layovers" in flight:
+                        filtered_flight["layovers"] = flight["layovers"]
+                    return filtered_flight
+                return flight
+            
+            # Helper function to check if flight is direct or has layovers
+            def is_direct_flight(flight):
+                """Returns True if flight is direct (no layovers)"""
+                if isinstance(flight, dict):
+                    # If layovers key doesn't exist or is empty, it's direct
+                    layovers = flight.get("layovers")
+                    if layovers is None or (isinstance(layovers, list) and len(layovers) == 0):
+                        return True
+                return False
+            
+            # Collect all available flights from best_flights and other_flights
+            all_flights = []
+            
+            # Add best_flights
+            if "results" in data and "best_flights" in data["results"]:
+                best_flights = data["results"]["best_flights"]
+                if isinstance(best_flights, list):
+                    for flight in best_flights:
+                        if isinstance(flight, dict):
+                            all_flights.append(filter_flight_item(flight))
+            
+            # Add other_flights
+            if "results" in data and "other_flights" in data["results"]:
+                other_flights = data["results"]["other_flights"]
+                if isinstance(other_flights, list):
+                    for flight in other_flights:
+                        if isinstance(flight, dict):
+                            all_flights.append(filter_flight_item(flight))
+            
+            # Filter flights based on flight_type
+            if flight_type == 1:  # Connecting flights (with layovers)
+                available_flights = [f for f in all_flights if not is_direct_flight(f)]
+            elif flight_type == 2:  # Direct flights (no layovers)
+                available_flights = [f for f in all_flights if is_direct_flight(f)]
+            else:  # No filter (all flights)
+                available_flights = all_flights
+            
+            if available_flights:
+                filtered_result["data"]["results"]["available_flights"] = available_flights
+            
+            return filtered_result
+        else:
+            return {"error": "Invalid response structure from tool", "successful": False}
+    except Exception as e:
+        return {"error": f"Tool execution failed: {str(e)}", "successful": False}
+
+# Create the custom tool
+@tool("filtered_composio_flight_search", args_schema=FilteredFlightSearchInput, return_direct=True)
+def filtered_composio_flight_search(
+    arrival_id: str,
+    departure_id: str,
+    outbound_date: str,
+    adults: int = 1,
+    children: int = 0,
+    infants: int = 0,
+    currency: Optional[str] = None,
+    gl: Optional[str] = None,
+    hl: Optional[str] = None,
+    return_date: Optional[str] = None,
+    travel_class: int = 1,
+    flight_type: Optional[int] = None
+) -> dict:
+    """Search for flights with comprehensive pricing, schedule, and airline information. 
+    this tool finds available flights between cities/airports with detailed pricing, multiple airlines, departure/arrival times, flight duration.
+    supports round-trip and one-way searches, multiple passenger types (adults, children, infants), different travel classes, direct and with layover flights, and international pricing in various currencies
+    perfect for travel planning, and price comparison."""
+    return filtered_flight_search(
+        arrival_id=arrival_id,
+        departure_id=departure_id,
+        outbound_date=outbound_date,
+        adults=adults,
+        children=children,
+        infants=infants,
+        currency=currency,
+        gl=gl,
+        hl=hl,
+        return_date=return_date,
+        travel_class=travel_class,
+        flight_type=flight_type
+    )
+
+# -------------------------------------- Composio Hotel Search Tool --------------------------------------
+
+# Input schema for the filtered Hotel search tool
+class FilteredHotelSearchInput(BaseModel):
+    check_in_date: str = Field(description="Check-in date in YYYY-MM-DD format. Must be a future date.")
+    check_out_date: str = Field(description="Check-out date in YYYY-MM-DD format. Must be after check-in date.")
+    q: str = Field(description="Location for hotel search. Can be city, neighborhood, landmark, or specific hotel name + city.")
+    adults: Optional[int] = Field(default=1, description="Number of adult passengers (18+ years old).")
+    children: Optional[int] = Field(default=0, description="Number of child passengers (2-11 years old).")
+    currency: Optional[str] = Field(default=None, description="Currency for pricing (3-letter currency code).")
+    free_cancellation: Optional[bool] = Field(default=None, description="Filter for hotels with free cancellation.")
+    gl: Optional[str] = Field(default=None, description="Country code for results (ISO 3166-1 alpha-2).")
+    hl: Optional[str] = Field(default=None, description="Language code for results (ISO 639-1).")
+    hotel_class: Optional[str] = Field(default=None, description="Filter by hotel star rating. Use comma-separated values for multiple ratings, e.g., '3,4' for 3 and 4-star hotels.")
+    max_price: Optional[int] = Field(default=None, description="Maximum price per night filter.")
+    min_price: Optional[int] = Field(default=None, description="Minimum price per night filter.")
+    include_images: Optional[bool] = Field(default=None, description="If True, Include 'images' in hotel results.")
+    include_nearby_places: Optional[bool] = Field(default=None, description="If True, Include 'nearby_places' in hotel results.")
+    num_results: Optional[int] = Field(default=5, description="Number of hotel results to return (1-10).")
+    include_ratings_and_reviews: Optional[bool] = Field(default=None, description="If True, Include rating and review information (location_rating, overall_rating, ratings, reviews, reviews_breakdown).")
+
+# Custom wrapper for filtered hotel search
+def filtered_hotel_search(
+    check_in_date: str,
+    check_out_date: str,
+    q: str,
+    adults: int = 1,
+    children: int = 0,
+    currency: Optional[str] = None,
+    free_cancellation: Optional[bool] = None,
+    gl: Optional[str] = None,
+    hl: Optional[str] = None,
+    hotel_class: Optional[str] = None,
+    max_price: Optional[int] = None,
+    min_price: Optional[int] = None,
+    include_images: Optional[bool] = None,
+    include_nearby_places: Optional[bool] = None,
+    num_results: int = 5,
+    include_ratings_and_reviews: Optional[bool] = None
+) -> dict:
+    """Wrapper that filters COMPOSIO_SEARCH_HOTELS results to reduce token usage"""
+    # Get the raw tool
+    raw_tool = None
+    for tool_item in hotel_search:
+        if tool_item.name == "COMPOSIO_SEARCH_HOTELS":
+            raw_tool = tool_item
+            break
+    if not raw_tool:
+        return {"error": "COMPOSIO_SEARCH_HOTELS tool not found", "successful": False}
+    try:
+        # Build the input dictionary with provided parameters
+        tool_input = {
+            "check_in_date": check_in_date,
+            "check_out_date": check_out_date,
+            "q": q,
+            "adults": adults,
+            "children": children,
+        }
+        
+        # Add optional parameters if provided
+        if currency:
+            tool_input["currency"] = currency
+        if free_cancellation is not None:
+            tool_input["free_cancellation"] = free_cancellation
+        if gl:
+            tool_input["gl"] = gl
+        if hl:
+            tool_input["hl"] = hl
+        if hotel_class:
+            tool_input["hotel_class"] = hotel_class
+        if max_price is not None:
+            tool_input["max_price"] = max_price
+        if min_price is not None:
+            tool_input["min_price"] = min_price
+        
+        # Call the original tool
+        if hasattr(raw_tool, 'invoke'):
+            result = raw_tool.invoke(tool_input)
+        else:
+            result = raw_tool.func(**tool_input)
+        
+        # Extract only what we need
+        if isinstance(result, dict) and "data" in result:
+            data = result["data"]
+            filtered_result = {
+                "data": {
+                    "results": {}
+                },
+                "successful": True
+            }
+            
+            # Ensure num_results is within bounds (1-10)
+            num_results = max(1, min(num_results, 10))
+            
+            # Process hotels/properties
+            if "results" in data and "properties" in data["results"]:
+                properties = data["results"]["properties"]
+                if isinstance(properties, list):
+                    filtered_properties = []
+                    
+                    for prop in properties[:num_results]:
+                        if isinstance(prop, dict):
+                            filtered_prop = {}
+                            
+                            # Always include these keys
+                            essential_keys = ["amenities", "check_in_time", "check_out_time", 
+                                            "description", "gps_coordinates", "hotel_class", 
+                                            "name", "rate_per_night", "link", "type"]
+                            
+                            for key in essential_keys:
+                                if key in prop:
+                                    filtered_prop[key] = prop[key]
+                            
+                            # Add deal if available
+                            if "deal" in prop:
+                                filtered_prop["deal"] = prop["deal"]
+                            
+                            # Add images if requested
+                            if include_images and "images" in prop:
+                                filtered_prop["images"] = prop["images"]
+                            
+                            # Add nearby_places if requested
+                            if include_nearby_places and "nearby_places" in prop:
+                                filtered_prop["nearby_places"] = prop["nearby_places"]
+                            
+                            # Add ratings and reviews if requested
+                            if include_ratings_and_reviews:
+                                rating_keys = ["location_rating", "overall_rating", "ratings", 
+                                             "reviews", "reviews_breakdown"]
+                                for key in rating_keys:
+                                    if key in prop:
+                                        filtered_prop[key] = prop[key]
+                            
+                            filtered_properties.append(filtered_prop)
+                    
+                    filtered_result["data"]["results"]["properties"] = filtered_properties
+            
+            return filtered_result
+        else:
+            return {"error": "Invalid response structure from tool", "successful": False}
+    except Exception as e:
+        return {"error": f"Tool execution failed: {str(e)}", "successful": False}
+
+# Create the custom tool
+@tool("filtered_composio_hotel_search", args_schema=FilteredHotelSearchInput, return_direct=True)
+def filtered_composio_hotel_search(
+    check_in_date: str,
+    check_out_date: str,
+    q: str,
+    adults: int = 1,
+    children: int = 0,
+    currency: Optional[str] = None,
+    free_cancellation: Optional[bool] = None,
+    gl: Optional[str] = None,
+    hl: Optional[str] = None,
+    hotel_class: Optional[str] = None,
+    max_price: Optional[int] = None,
+    min_price: Optional[int] = None,
+    include_images: Optional[bool] = None,
+    include_nearby_places: Optional[bool] = None,
+    num_results: int = 5,
+    include_ratings_and_reviews: Optional[bool] = None
+) -> dict:
+    """Search for hotels and vacation rentals with comprehensive filtering and pricing. 
+    this tool finds available accommodations with detailed information including:
+      pricing, ratings, amenities, photos, and booking options. supports price range filtering, star rating selection, sorting by various criteria (price, rating, distance), free cancellation options, and vacation rental inclusion. 
+      perfect for travel planning, accommodation comparison, and finding the best lodging options for any destination. ."""
+    return filtered_hotel_search(
+        check_in_date=check_in_date,
+        check_out_date=check_out_date,
+        q=q,
+        adults=adults,
+        children=children,
+        currency=currency,
+        free_cancellation=free_cancellation,
+        gl=gl,
+        hl=hl,
+        hotel_class=hotel_class,
+        max_price=max_price,
+        min_price=min_price,
+        include_images=include_images,
+        include_nearby_places=include_nearby_places,
+        num_results=num_results,
+        include_ratings_and_reviews=include_ratings_and_reviews
+    )
