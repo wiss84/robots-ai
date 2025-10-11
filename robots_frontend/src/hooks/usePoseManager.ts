@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface ChatMessage {
   role: string;
-  type?: 'text' | 'image' | 'file';
+  type?: 'text' | 'image' | 'video' | 'file';
   content: string;
   fileName?: string;
   fileUrl?: string;

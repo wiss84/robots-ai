@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react';
 
 interface ChatMessage {
   role: string;
-  type?: 'text' | 'image' | 'file';
+  type?: 'text' | 'image' | 'video' | 'file';
   content: string;
   fileUrl?: string;
   fileName?: string;
@@ -603,6 +603,25 @@ if (agentId === 'coding' || agentId === 'finance' || agentId === 'news') {
             role: 'agent',
             type: 'image',
             content: displayText || `Here's your generated image: ${filename}`,
+            fileUrl: `/uploaded_files/${filename}`,
+            fileName: filename
+          }]);
+        }
+      }
+      // Check if response contains video path
+      else if (data.response && typeof data.response === 'string' && data.response.includes('{video_path:')) {
+        // Extract video path from response
+        const videoMatch = data.response.match(/{video_path: ['"]([^'"]+)['"]}/);
+        if (videoMatch) {
+          const filename = videoMatch[1];
+
+          // Remove the video_path part from the displayed text
+          const displayText = data.response.replace(/\n?\n?{video_path: ['"][^'"]+['"]}/g, '').trim();
+
+          setMessages((prev: ChatMessage[]) => [...prev, {
+            role: 'agent',
+            type: 'video',
+            content: displayText || `Here's your generated video: ${filename}`,
             fileUrl: `/uploaded_files/${filename}`,
             fileName: filename
           }]);

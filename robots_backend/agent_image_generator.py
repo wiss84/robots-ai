@@ -11,8 +11,10 @@ from typing import Optional
 # Import your custom tool
 # from tools import generate_image
 from image_generation_tool import generate_image_tool
+from composio_tools_filtered import generate_video
 from composio_tools_filtered import filtered_composio_image_search
 from file_upload import router as file_upload_router
+
 
 # Import dynamic model configuration
 from dynamic_model_config import get_current_gemini_model
@@ -27,7 +29,7 @@ def get_llm():
     return get_current_gemini_model(temperature=0.1)
 
 # Combine filtered tool with other tools
-tools = [filtered_composio_image_search,generate_image_tool]
+tools = [filtered_composio_image_search, generate_image_tool, generate_video]
 
 def handle_tool_error(state) -> dict:
     error = state.get("error")

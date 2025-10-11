@@ -8,7 +8,7 @@ import { CodeBlock, parseAgentResponse } from '../utils/code_parser';
 
 interface Message {
   role: string;
-  type?: 'text' | 'image' | 'file';
+  type?: 'text' | 'image' | 'video' | 'file';
   content: string;
   fileName?: string;
   fileUrl?: string;
@@ -336,6 +336,24 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                     margin: '8px 0',
                   }}
                 />
+              </div>
+            )}
+            {msg.type === 'video' && msg.fileUrl && (
+              <div className="chat-video-message">
+                <video
+                  controls
+                  src={`http://localhost:8000/project/files/content/${
+                    msg.fileUrl.split('/uploaded_files/')[1]
+                  }`}
+                  style={{
+                    maxWidth: 500,
+                    maxHeight: 500,
+                    borderRadius: 8,
+                    margin: '8px 0',
+                  }}
+                >
+                  Your browser does not support the video tag.
+                </video>
               </div>
             )}
             {msg.type === 'file' && msg.fileName && (

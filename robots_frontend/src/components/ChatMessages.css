@@ -79,6 +79,21 @@
   margin-bottom: 6px;
   box-shadow: 0 2px 8px #00bcd433;
 }
+
+.chat-video-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 8px 0;
+}
+
+.chat-video-message video {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px #00bcd433;
+  background: #0a0a0a;
+}
 .agent-image-message .download-btn {
   background: #00bcd4;
   color: #121212;
