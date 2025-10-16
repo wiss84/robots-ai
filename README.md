@@ -4,6 +4,10 @@
 
 A sophisticated multi-agent AI system built with React frontend and Python backend, featuring specialized AI agents for various tasks including coding, finance, news, real estate, travel, image generation, and shopping assistance.
 
+## Project Architect
+
+![Project Architect](./Project-Architect.png)
+
 ## 🌍 Travel Agent Demo
 
 Check out a short video demo of the Travel Agent in action:
@@ -42,12 +46,12 @@ https://youtu.be/8CLciFL_IcA
 ## ✨ Features
 
 ### 🤖 Specialized AI Agents
-- **Coding Agent**: Programming assistance, debugging, and code reviews
-- **Finance Agent**: Investment advice, financial planning, and market analysis
+- **Coding Agent**: Programming assistance, debugging, code reviews, and codebase read\write\edit.
+- **Finance Agent**: Investment advice, financial planning, deep search and market analysis
 - **News Agent**: Real-time news aggregation and analysis
-- **Real Estate Agent**: Property search, market insights, and investment guidance
-- **Travel Agent**: Trip planning, recommendations, and travel assistance
-- **Image Generator**: AI-powered image creation, image search, and image analysis
+- **Real Estate Agent**: Active listing property search, market insights, and investment guidance
+- **Travel Agent**: Trip planning, recommendations, flight & hotel search, display markers on an interactive maps, send and display real photos for places and travel assistance
+- **Image Generator**: AI-powered image & video creation, image search, and image analysis
 - **Shopping Agent**: Product search, price comparison, and shopping assistance
 - **Games Agent**: Interactive chess gameplay with strategy and analysis
 
