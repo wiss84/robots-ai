@@ -43,6 +43,15 @@ https://youtu.be/j2UX84jdfz8
 Watch a quick demo of the AI-powered Image Generator Agent in action:
 https://youtu.be/8CLciFL_IcA
 
+## Important Note: 
+
+As of December 2025. The project will not work as expected since google nerfed the number of requests for gemini models on the free tier, which was previously between 200-1000 and currently maximum of 20 for 1 or 2 models only. 
+
+For people who still want to run the project: you have few options as follows:
+- Add billing to your account: Based on my understanding,if you added billing to your gemini for developer account you will be treated as tier 1 account instead of free tier, all models will be unlocked with up to 1.4k free daily requests for each model. You will not be charged unless you exceed this free limit. All you need to do is to add your credit card to your account and monitor the number of daily requests on the rate limits dashboard in google studio.
+
+- Refactor code: if you already have access to models like gpt or claude or even open source models (if you have a good local machine) you can refactor the rate limiter script in the backend to use these models instead of gemini models, you will also need to change the gemini models that run the deep search.
+
 ## ✨ Features
 
 ### 🤖 Specialized AI Agents
