@@ -43,6 +43,10 @@ https://youtu.be/j2UX84jdfz8
 Watch a quick demo of the AI-powered Image Generator Agent in action:
 https://youtu.be/8CLciFL_IcA
 
+## Update:
+
+gemini-3.1-flash-lite-preview model have been added. Users can have upto 500 free requests per day.
+
 ## Important Note: 
 
 As of December 2025. The project will not work as expected since google nerfed the number of requests for gemini models on the free tier, which was previously between 200-1000 and currently maximum of 20 for 1 or 2 models only. 
