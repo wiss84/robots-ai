@@ -53,11 +53,11 @@ class GeminiRateLimiter:
     def __init__(self):
         # Define model limits based on the task requirements
         self.model_limits = {
-            "gemini-2.5-flash-lite-preview-06-17": ModelLimits(
+            "gemini-3.1-flash-lite-preview": ModelLimits(
                 requests_per_minute=15,
                 tokens_per_minute=250_000,
-                requests_per_day=1000,
-                model_name="gemini-2.5-flash-lite-preview-06-17"
+                requests_per_day=500,
+                model_name="gemini-3.1-flash-lite-preview"
             ),
             "gemini-2.5-flash-lite-preview-09-2025": ModelLimits(
                 requests_per_minute=15,
