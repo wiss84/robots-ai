@@ -17,16 +17,17 @@ from server_sent_events import add_url_to_stream, clear_url_stream, signal_strea
 CURRENT_DATE = datetime.now().strftime("%Y-%m-%d")
 
 # --- Setup Gemini clients ---
+# Updated February 2026 - using current available Gemini models
 # Use flash-lite for query expansion (shares quota with agent)
 llm_expansion = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("GOOGLE_API_KEY"),
     temperature=0.2,
 )
 
 # Use full flash for batch summarization and final summary (separate quota)
 llm_summarization = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     google_api_key=os.getenv("GOOGLE_API_KEY"),
     temperature=0.1,
 )
@@ -42,7 +43,7 @@ def duckduckgo_search(query: str, max_results: int = 25):
                 safe_search='moderate',
                 region='us-en',
                 timelimit='y',
-                # backend='bing, brave, google, mullvad_brave, mullvad_google, yahoo, yandex'
+                # backend= bing, brave, duckduckgo, google, grokipedia, mojeek, yandex, yahoo, wikipedia
                 backend='auto'
             )]
         return results

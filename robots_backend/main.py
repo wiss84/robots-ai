@@ -404,11 +404,28 @@ async def chat_with_agent(
             else:
                 response_content = str(last_message)
 
-            # Ensure response_content is a string (handle lists, etc.)
+            # Ensure response_content is a string (handle lists, dicts, etc.)
             if not isinstance(response_content, str):
-                if isinstance(response_content, list):
-                    # Join list elements with newlines, filtering out empty strings
-                    response_content = '\n'.join([str(item) for item in response_content if item])
+                if isinstance(response_content, list) and response_content:
+                    first = response_content[0]
+                    if isinstance(first, dict) and "text" in first:
+                        response_content = first["text"]
+                    else:
+                        response_content = str(first)
+                elif isinstance(response_content, dict):
+                    # Handle dict with various keys (langchain-google-genai 4.x format)
+                    if 'text' in response_content:
+                        text_val = response_content['text']
+                        if isinstance(text_val, dict):
+                            response_content = text_val.get('text', str(response_content))
+                        else:
+                            response_content = text_val
+                    elif 'video_path' in response_content:
+                        response_content = f"Video generated: {response_content['video_path']}"
+                    elif 'path' in response_content:
+                        response_content = f"File saved: {response_content['path']}"
+                    else:
+                        response_content = str(response_content)
                 else:
                     response_content = str(response_content)
 

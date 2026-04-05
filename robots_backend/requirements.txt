@@ -4,11 +4,11 @@ uvicorn==0.31.1
 python-multipart==0.0.20
 
 # LangGraph & LangChain
-langgraph==0.6.6
-langchain==0.3.26
-langchain-google-genai==2.0.9
+langgraph>=1.0.0
+langchain>=1.0.0
+langchain-google-genai>=4.0.0
 langchain-community==0.3.27
-langchain-core>=0.3.75,<0.4.0
+langchain-core>=1.2.0
 
 # Tools & Utilities
 composio-langchain==0.8.20

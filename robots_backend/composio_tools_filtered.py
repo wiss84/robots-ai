@@ -1,10 +1,10 @@
 # Import Pydantic for schema definition
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Dict, Any
 from langchain_core.tools import tool
 from composio import Composio
 import time
-import shutil
+import requests
 import os
 from composio_langchain import LangchainProvider
 from dotenv import load_dotenv
@@ -28,119 +28,93 @@ video_url_pull_tool = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), 
 # Input schema for the video generation tool
 class VideoGenerationInput(BaseModel):
     prompt: str = Field(description="Text prompt for Veo video generation")
-    extras: object = Field(default=None, description="Additional parameters passed through to API")
-    model: str = Field(default="veo-3.0-generate-preview", description="Model to use. Examples: 'veo-3.0-generate-preview', 'veo-3.0-fast-generate-preview', 'veo-2.0-generate-001'")
-    filename: str = Field(default=None, description="Name for the generated video file (without extension)")
+    model: str = Field(default="veo-3.0-fast-generate-001", description="Model to use. Examples: 'veo-3.0-generate-001', 'veo-3.0-fast-generate-001'")
+    filename: str = Field(default=None, description="Name for the video file")
 
-# Custom wrapper for video generation and pulling
-def generate_and_pull_video(prompt: str, filename: str = None, model: str = "veo-3.0-generate-preview", extras: object = None) -> str:
-    """Wrapper that handles video generation, waiting, pulling, and file management"""
-    # Get the raw tools
-    raw_gen_tool = None
-    raw_pull_tool = None
+def generate_and_pull_video(prompt: str, filename: str = None, model: str = "veo-3.0-fast-generate-001") -> str:
+    """Wrapper that handles video generation and downloads to your specific project structure"""
     
-    for tool_item in video_generation_tool:
-        if tool_item.name == "GEMINI_GENERATE_VIDEOS":
-            raw_gen_tool = tool_item
-            break
-            
-    for tool_item in video_url_pull_tool:
-        if tool_item.name == "GEMINI_WAIT_FOR_VIDEO":
-            raw_pull_tool = tool_item
-            break
-            
+    # Identify tools
+    raw_gen_tool = next((t for t in video_generation_tool if t.name == "GEMINI_GENERATE_VIDEOS"), None)
+    raw_pull_tool = next((t for t in video_url_pull_tool if t.name == "GEMINI_WAIT_FOR_VIDEO"), None)
+    
     if not raw_gen_tool or not raw_pull_tool:
-        error_msg = "Required video tools not found"
-        print(f"❌ Error: {error_msg}")
-        return error_msg
-        
+        return "Error: Required video tools not found"
+
     try:
         print(f"🎬 Generating video for: '{prompt}'")
-        print("⏳ Please wait, this may take a few minutes...")
         
-        # Step 1: Generate video and get operation_name
-        gen_input = {
-            "prompt": prompt,
-            "model": model
-        }
-        if extras:
-            gen_input["extras"] = extras
+        # Step 1: Generate video
+        gen_input = {"prompt": prompt, "model": model}
             
-        if hasattr(raw_gen_tool, 'invoke'):
-            gen_result = raw_gen_tool.invoke(gen_input)
-        else:
-            gen_result = raw_gen_tool.func(**gen_input)
-            
-        if not isinstance(gen_result, dict) or "data" not in gen_result or "operation_name" not in gen_result["data"]:
-            error_msg = "Invalid response from video generation"
-            print(f"❌ Error: {error_msg}")
-            print(f"Received response: {gen_result}")
-            return error_msg
-            
+        gen_result = raw_gen_tool.invoke(gen_input) if hasattr(raw_gen_tool, 'invoke') else raw_gen_tool.func(**gen_input)
+        
         operation_id = gen_result["data"]["operation_name"]
-        print("🎥 Video generation started...")
+        print(f"🎥 Video generation started: {operation_id}")
         
-        time.sleep(12)  # Wait 12 seconds for the video to be ready before pulling it
+        time.sleep(60) # Initial wait
 
         # Step 2: Pull video with retries
-        max_retries = 6  # Maximum 6 retries (total 60 seconds)
+        max_retries = 12 
         for attempt in range(max_retries):
             try:
-                if hasattr(raw_pull_tool, 'invoke'):
-                    pull_result = raw_pull_tool.invoke({"operation_name": operation_id})
-                else:
-                    pull_result = raw_pull_tool.func(operation_name=operation_id)
+                pull_result = raw_pull_tool.invoke({"operation_name": operation_id}) if hasattr(raw_pull_tool, 'invoke') else raw_pull_tool.func(operation_name=operation_id)
                 
+                # Check for the dictionary containing the s3url (from your logs)
                 if isinstance(pull_result, dict) and "data" in pull_result and "video_file" in pull_result["data"]:
-                    original_path = pull_result["data"]["video_file"]
-                    print(f"✅ Video pulled successfully: {original_path}")
+                    video_data = pull_result["data"]["video_file"]
                     
-                    # Step 3: Move to uploaded_files with custom filename
-                    base_filename = filename if filename else f"video_{int(time.time())}"
-                    final_filename = f"{base_filename}.mp4"
-                    
-                    # Ensure uploaded_files directory exists in project root
-                    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    upload_dir = os.path.join(project_root, "uploaded_files")
-                    os.makedirs(upload_dir, exist_ok=True)
-                    
-                    # Create full file path
-                    file_path = os.path.join(upload_dir, final_filename)
-                    
-                    # Copy the file to uploaded_files
-                    shutil.copy2(original_path, file_path)
-                    
-                    print(f"✅ Video saved successfully as '{file_path}'!")
-                    return file_path
+                    if isinstance(video_data, dict) and "s3url" in video_data:
+                        video_url = video_data["s3url"]
+                        print(f"✅ Video ready! Starting download...")
+
+                        # --- YOUR SPECIFIC STEP 3 PATH LOGIC ---
+                        base_filename = filename if filename else f"video_{int(time.time())}"
+                        final_filename = f"{base_filename}.mp4"
+                        
+                        # Use your specific double-dirname logic
+                        try:
+                            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        except NameError:
+                            # Fallback for Jupyter testing
+                            project_root = os.getcwd()
+                            
+                        upload_dir = os.path.join(project_root, "uploaded_files")
+                        os.makedirs(upload_dir, exist_ok=True)
+                        
+                        file_path = os.path.join(upload_dir, final_filename)
+                        # ---------------------------------------
+
+                        # Download the file (Replaces shutil.copy2)
+                        with requests.get(video_url, stream=True) as r:
+                            r.raise_for_status()
+                            with open(file_path, 'wb') as f:
+                                for chunk in r.iter_content(chunk_size=8192):
+                                    f.write(chunk)
+                        
+                        print(f"✅ Video saved successfully as '{file_path}'!")
+                        
+                        # Return the specific path for the frontend
+                        return f"uploaded_files/{final_filename}"
                 
-                # If we get here, the video isn't ready yet
-                if attempt < max_retries - 1:  # Don't sleep on the last attempt
-                    print(f"⏳ Video not ready yet, waiting... (attempt {attempt + 1}/{max_retries})")
-                    time.sleep(10)  # Wait 10 seconds before next attempt
+                # If not ready
+                print(f"⏳ Video not ready yet, waiting... (attempt {attempt + 1}/{max_retries})")
+                time.sleep(60)
                     
             except Exception as e:
-                if attempt < max_retries - 1:  # Don't sleep on the last attempt
-                    print(f"⚠️ Attempt {attempt + 1} failed, retrying...")
-                    time.sleep(10)  # Wait 10 seconds before next attempt
-                else:
-                    error_msg = f"Failed to pull video after multiple attempts: {str(e)}"
-                    print(f"❌ Error: {error_msg}")
-                    return error_msg
-                    
-        error_msg = "Failed to pull video after maximum retries"
-        print(f"❌ Error: {error_msg}")
-        return error_msg
+                print(f"⚠️ Attempt {attempt + 1} failed: {str(e)}")
+                time.sleep(60)
+                
+        return "Error: Timeout after maximum retries."
         
     except Exception as e:
-        error_msg = f"Tool execution failed: {str(e)}"
-        print(f"❌ Error: {error_msg}")
-        return error_msg
+        return f"Tool execution failed: {str(e)}"
 
 # Create the custom tool
 @tool("generate_video", args_schema=VideoGenerationInput, return_direct=True)
-def generate_video(prompt: str, filename: str = None, model: str = "veo-3.0-generate-preview", extras: object = None) -> str:
-    """Generates videos from text prompts using Google's Veo models. Creates high-quality video content."""
-    return generate_and_pull_video(prompt=prompt, filename=filename, model=model, extras=extras)
+def generate_video(prompt: str, filename: str = None, model: str = "veo-3.0-fast-generate-001") -> str:
+    """Generates videos from text prompts and saves them to the uploaded_files directory."""
+    return generate_and_pull_video(prompt=prompt, filename=filename, model=model)
 
 
 # -------------------------------------- Google Search Image Tool --------------------------------------

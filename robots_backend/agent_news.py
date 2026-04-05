@@ -234,6 +234,23 @@ async def ask_news_agent_stream(
                         if chunk is not None:
                             try:
                                 token = getattr(chunk, "content", None)
+                                # Handle new langchain-google-genai 4.x format (list/dict content)
+                                if token is not None and not isinstance(token, str):
+                                    if isinstance(token, list) and token:
+                                        first = token[0]
+                                        if isinstance(first, dict) and "text" in first:
+                                            token = first["text"]
+                                        else:
+                                            token = str(first)
+                                    elif isinstance(token, dict):
+                                        if "text" in token:
+                                            text_val = token["text"]
+                                            if isinstance(text_val, dict):
+                                                token = text_val.get("text", str(token))
+                                            else:
+                                                token = text_val
+                                        else:
+                                            token = str(token)
                                 if token is None:
                                     token = str(chunk)
                             except Exception:

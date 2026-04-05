@@ -34,26 +34,43 @@ tools = [filtered_composio_image_search, generate_image_tool, generate_video]
 def handle_tool_error(state) -> dict:
     error = state.get("error")
     tool_calls = []
-    if state["messages"] and hasattr(state["messages"][-1], "tool_calls"):
-        tool_calls = state["messages"][-1].tool_calls
+    # Safely access messages
+    if state.get("messages"):
+        last_msg = state["messages"][-1]
+        if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+            tool_calls = last_msg.tool_calls
+    
     if not error and tool_calls:
         for tc in tool_calls:
-            if not tc.get("content") or str(tc.get("content")).strip() == "":
+            content = tc.get("content") if isinstance(tc, dict) else None
+            if not content or str(content).strip() == "":
                 return {
                     "messages": [
                         ToolMessage(
                             content="Tool returned an empty response. Please try a different search query or approach.",
-                            tool_call_id=tc["id"],
+                            tool_call_id=tc["id"] if isinstance(tc, dict) else "unknown",
                         )
                     ]
                 }
+    
+    if error:
+        error_str = str(error)
+        return {
+            "messages": [
+                ToolMessage(
+                    content=f"Tool execution failed: {error_str}\nPlease try again with a different approach.",
+                    tool_call_id=tc["id"] if tool_calls and isinstance(tool_calls[0], dict) else "unknown",
+                )
+                for tc in tool_calls
+            ]
+        }
+    
     return {
         "messages": [
             ToolMessage(
-                content=f"Error: {repr(error)}\nPlease fix your mistakes.",
-                tool_call_id=tc["id"] if tc else "unknown",
+                content=f"An error occurred. Please try again.",
+                tool_call_id="unknown",
             )
-            for tc in tool_calls
         ]
     }
 
@@ -161,13 +178,30 @@ def ask_image_agent(
             # Handle different message types
             if isinstance(last_message, AIMessage):
                 response_content = last_message.content
+                # Handle new format where content is a dict with 'text' field
+                if isinstance(response_content, dict):
+                    response_content = response_content.get('text', str(last_message.content))
             elif isinstance(last_message, ToolMessage):
                 response_content = last_message.content
+                # Handle various content types (dict, list, string)
+                if isinstance(response_content, dict):
+                    file_path = response_content.get('path') or response_content.get('file_path') or response_content.get('video_file')
+                    if file_path and isinstance(file_path, str) and file_path.startswith('/'):
+                        response_content = f"✅ Video generated successfully! Saved at: {file_path}"
+                    else:
+                        response_content = str(response_content)
+                elif isinstance(response_content, list):
+                    response_content = '\n'.join([str(item) for item in response_content if item])
             else:
-                response_content = str(last_message.content) if hasattr(last_message, 'content') else str(last_message)
+                content = last_message.content if hasattr(last_message, 'content') else str(last_message)
+                response_content = str(content) if content else ""
+
+            # Ensure response_content is a string
+            if not isinstance(response_content, str):
+                response_content = str(response_content)
 
             # Check if response is empty and provide fallback
-            if not response_content or response_content.strip() == "":
+            if not response_content.strip():
                 response_content = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
 
             return {"response": response_content, "conversation_id": conversation_id}
