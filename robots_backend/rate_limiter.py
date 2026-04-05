@@ -57,8 +57,14 @@ class GeminiRateLimiter:
             "gemini-3.1-flash-lite-preview": ModelLimits(
                 requests_per_minute=15,
                 tokens_per_minute=250_000,
-                requests_per_day=500,
-                model_name="gemini-3.1-flash-lite-preview"
+                requests_per_day=1000,
+                model_name="gemini-2.5-flash-lite-preview-06-17"
+            ),
+            "gemini-2.5-flash-lite-preview-09-2025": ModelLimits(
+                requests_per_minute=15,
+                tokens_per_minute=250_000,
+                requests_per_day=1000,
+                model_name="gemini-2.5-flash-lite-preview-09-2025"
             ),
             "gemini-2.0-flash-lite": ModelLimits(
                 requests_per_minute=30,
@@ -88,7 +94,8 @@ class GeminiRateLimiter:
         
         # Model priority order (primary -> secondary -> tertiary)
         self.model_priority = [
-            "gemini-3.1-flash-lite-preview",
+            "gemini-2.5-flash-lite-preview-06-17",
+            "gemini-2.5-flash-lite-preview-09-2025",            
             "gemini-2.0-flash-lite",
             "gemini-1.5-flash",
             "gemini-1.5-flash-lite",
