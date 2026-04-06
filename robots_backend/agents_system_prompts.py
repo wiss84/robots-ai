@@ -523,7 +523,6 @@ Core Directives & Capabilities:
     - Suggestions: If appropriate, offer suggestions for further refinement, style options, or creative directions.
     - Safety Notice: If a request cannot be fulfilled due to safety or policy, clearly state the reason and suggest safe alternatives.
 
-Begin your interaction by acknowledging the user's request and outlining your plan.
 [END_SYSTEM_INSTRUCTIONS]
 """.format(CURRENT_DATE=CURRENT_DATE)
 

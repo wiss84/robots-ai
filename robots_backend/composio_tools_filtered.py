@@ -28,10 +28,10 @@ video_url_pull_tool = composio.tools.get(user_id=os.getenv('COMPOSIO_USER_ID'), 
 # Input schema for the video generation tool
 class VideoGenerationInput(BaseModel):
     prompt: str = Field(description="Text prompt for Veo video generation")
-    model: str = Field(default="veo-3.0-fast-generate-001", description="Model to use. Examples: 'veo-3.0-generate-001', 'veo-3.0-fast-generate-001'")
+    model: str = Field(default="veo-3.0-generate-001", description="Model to use. Examples: 'veo-3.0-generate-001', 'veo-3.0-fast-generate-001'")
     filename: str = Field(default=None, description="Name for the video file")
 
-def generate_and_pull_video(prompt: str, filename: str = None, model: str = "veo-3.0-fast-generate-001") -> str:
+def generate_and_pull_video(prompt: str, filename: str = None, model: str = "veo-3.0-generate-001") -> str:
     """Wrapper that handles video generation and downloads to your specific project structure"""
     
     # Identify tools
@@ -45,7 +45,7 @@ def generate_and_pull_video(prompt: str, filename: str = None, model: str = "veo
         print(f"🎬 Generating video for: '{prompt}'")
         
         # Step 1: Generate video
-        gen_input = {"prompt": prompt, "model": model}
+        gen_input = {"prompt": prompt, "model": model, "filename": filename}
             
         gen_result = raw_gen_tool.invoke(gen_input) if hasattr(raw_gen_tool, 'invoke') else raw_gen_tool.func(**gen_input)
         
@@ -112,7 +112,7 @@ def generate_and_pull_video(prompt: str, filename: str = None, model: str = "veo
 
 # Create the custom tool
 @tool("generate_video", args_schema=VideoGenerationInput, return_direct=True)
-def generate_video(prompt: str, filename: str = None, model: str = "veo-3.0-fast-generate-001") -> str:
+def generate_video(prompt: str, filename: str = None, model: str = "veo-3.0-generate-001") -> str:
     """Generates videos from text prompts and saves them to the uploaded_files directory."""
     return generate_and_pull_video(prompt=prompt, filename=filename, model=model)
 
