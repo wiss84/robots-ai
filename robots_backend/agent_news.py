@@ -236,12 +236,22 @@ async def ask_news_agent_stream(
                                 token = getattr(chunk, "content", None)
                                 # Handle new langchain-google-genai 4.x format (list/dict content)
                                 if token is not None and not isinstance(token, str):
-                                    if isinstance(token, list) and token:
-                                        first = token[0]
-                                        if isinstance(first, dict) and "text" in first:
-                                            token = first["text"]
-                                        else:
-                                            token = str(first)
+                                    if isinstance(token, list):
+                                        # Collect all text parts from the list of blocks, ignoring thinking blocks
+                                        text_parts = []
+                                        for block in token:
+                                            if isinstance(block, str):
+                                                text_parts.append(block)
+                                            elif isinstance(block, dict):
+                                                if "text" in block:
+                                                    text_val = block["text"]
+                                                    if isinstance(text_val, dict):
+                                                        text_parts.append(text_val.get("text", ""))
+                                                    elif isinstance(text_val, str):
+                                                        text_parts.append(text_val)
+                                                    else:
+                                                        text_parts.append(str(text_val))
+                                        token = "".join(text_parts)
                                     elif isinstance(token, dict):
                                         if "text" in token:
                                             text_val = token["text"]
@@ -250,7 +260,7 @@ async def ask_news_agent_stream(
                                             else:
                                                 token = text_val
                                         else:
-                                            token = str(token)
+                                            token = "" # Ignore non-text dicts (like thinking)
                                 if token is None:
                                     token = str(chunk)
                             except Exception:

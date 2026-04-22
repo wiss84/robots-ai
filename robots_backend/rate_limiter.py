@@ -54,6 +54,24 @@ class GeminiRateLimiter:
         # Define model limits based on the task requirements
         # Updated February 2026 - using current available Gemini models
         self.model_limits = {
+            "gemma-4-31b-it": ModelLimits(
+                requests_per_minute=15,
+                tokens_per_minute=1_000_000,
+                requests_per_day=1500,
+                model_name="gemma-4-31b-it"
+            ),
+            "gemma-4-26b-a4b-it": ModelLimits(
+                requests_per_minute=15,
+                tokens_per_minute=1_000_000,
+                requests_per_day=1500,
+                model_name="gemma-4-26b-a4b-it"
+            ),
+            "gemini-3-flash-preview": ModelLimits(
+                requests_per_minute=15,
+                tokens_per_minute=250_000,
+                requests_per_day=1000,
+                model_name="gemini-3-flash-preview"
+            ),
             "gemini-3.1-flash-lite-preview": ModelLimits(
                 requests_per_minute=15,
                 tokens_per_minute=250_000,
@@ -78,11 +96,11 @@ class GeminiRateLimiter:
                 requests_per_day=1500,
                 model_name="gemini-1.5-flash"
             ),
-            "gemini-1.5-flash-lite": ModelLimits(
+            "gemini-2.5-flash": ModelLimits(
                 requests_per_minute=30,
                 tokens_per_minute=1_000_000,
                 requests_per_day=1500,
-                model_name="gemini-1.5-flash-lite"
+                model_name="gemini-2.5-flash"
             ),
             "gemini-1.5-pro": ModelLimits(
                 requests_per_minute=2,
@@ -94,6 +112,10 @@ class GeminiRateLimiter:
         
         # Model priority order (primary -> secondary -> tertiary)
         self.model_priority = [
+            "gemma-4-31b-it",
+            "gemma-4-26b-a4b-it",
+            "gemini-3-flash-preview",
+            "gemini-2.5-flash",
             "gemini-3.1-flash-lite-preview",
             "gemini-2.5-flash-lite-preview-09-2025",            
             "gemini-2.0-flash-lite",

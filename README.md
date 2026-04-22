@@ -45,7 +45,10 @@ https://youtu.be/8CLciFL_IcA
 
 ## Update:
 
-gemini-3.1-flash-lite-preview model have been added. Users can have upto 500 free requests per day.
+**Gemma-4 models:**  have been added. Users can have upto 3000 free requests per day:
+
+**Primary Model:**  "gemma-4-31b-it" 
+**Fallback Model:** "gemma-4-26b-a4b-it"
 
 ## Important Note: 
 

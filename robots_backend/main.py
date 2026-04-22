@@ -406,12 +406,23 @@ async def chat_with_agent(
 
             # Ensure response_content is a string (handle lists, dicts, etc.)
             if not isinstance(response_content, str):
-                if isinstance(response_content, list) and response_content:
-                    first = response_content[0]
-                    if isinstance(first, dict) and "text" in first:
-                        response_content = first["text"]
-                    else:
-                        response_content = str(first)
+                if isinstance(response_content, list):
+                    # Collect all text parts from the list of blocks, ignoring thinking blocks
+                    text_parts = []
+                    for block in response_content:
+                        if isinstance(block, str):
+                            text_parts.append(block)
+                        elif isinstance(block, dict):
+                            if "text" in block:
+                                text_val = block["text"]
+                                if isinstance(text_val, dict):
+                                    text_parts.append(text_val.get("text", ""))
+                                elif isinstance(text_val, str):
+                                    text_parts.append(text_val)
+                                else:
+                                    text_parts.append(str(text_val))
+                            # Ignore 'thinking' blocks or other non-text blocks
+                    response_content = "".join(text_parts)
                 elif isinstance(response_content, dict):
                     # Handle dict with various keys (langchain-google-genai 4.x format)
                     if 'text' in response_content:
